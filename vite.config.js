@@ -3,9 +3,8 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: './', // Ensures assets load on both Vercel and GitHub Pages
+  base: '/Gobulu/',
   build: {
-    outDir: 'dist', // Matches gh-pages -d dist
-    emptyOutDir: true,
+    outDir: 'docs', // Tells Vite to output build files into /docs instead of /dist
   },
 })
