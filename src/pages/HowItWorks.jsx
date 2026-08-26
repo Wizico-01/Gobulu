@@ -28,7 +28,7 @@ const STEPS = [
     body: "Gobulu measures the most recent swing on your entry timeframe and checks whether price is sitting at the 50.0% or 61.8% retracement, the two levels that count toward your score. Other levels are shown for reference only.",
   },
   {
-    title: "7. Gobulu score gates the alarm",
+    title: "7. Confluence score gates the alarm",
     body: "Every factor above is one point, out of 8. Below 4 is Weak and stays silent. 4 is the minimum to alert (Good); 5–6 is Strong; 7–8 is Very Strong.",
   },
   {

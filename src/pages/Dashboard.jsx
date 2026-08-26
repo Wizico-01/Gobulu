@@ -264,12 +264,10 @@ export default function Dashboard() {
               </div>
             </button>
           ) : (
-            <div className="rounded-xl p-4 flex items-center gap-3 border border-line bg-white">
+                        <div className="rounded-xl p-4 flex items-center gap-3 border border-line bg-white">
               <Circle size={18} className="text-line" />
               <p className="text-sm font-medium text-ink/50">
-                {analysis.tradePlan?.zoneStatus === "missed" || analysis.tradePlan?.zoneStatus === "insufficient"
-                  ? analysis.tradePlan.zoneMessage
-                  : "No confirmed entry yet, waiting on Gobulu and candlestick confirmation."}
+                {analysis.tradePlan?.zoneMessage ?? "No confirmed entry yet — waiting on confluence and candlestick confirmation."}
               </p>
             </div>
           )}

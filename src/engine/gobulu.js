@@ -25,11 +25,11 @@ export function buildGobulu({ tiers, entryTier, pattern, priceNearKeyLevel, pric
     { key: "trend", label: `${tiers[2].name} trend confirms higher-timeframe bias`, pass: trendConfirms },
     { key: "structure", label: "Market structure is clean (not choppy/range)", pass: structureClean },
     { key: "bos", label: entryTier.bos.occurred ? "Break of structure retested before acting" : "No conflicting break of structure", pass: bosOk },
-    {
+        {
       key: "level",
       label: priceNearKeyLevel && nearestLevel
-        ? `Price sitting at ${fmtPrice(symbol, nearestLevel.price)} support/resistance level`
-        : "Price not currently at a key support/resistance level",
+        ? `Price sitting at ${fmtPrice(symbol, nearestLevel.price)} ${entryTier.trend === "uptrend" ? "support" : entryTier.trend === "downtrend" ? "resistance" : "support/resistance"} level`
+        : "Price not currently at a key level",
       pass: priceNearKeyLevel,
     },
     {

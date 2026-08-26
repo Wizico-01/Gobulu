@@ -4,15 +4,15 @@ import { Menu, X } from "lucide-react";
 import Logo from "./Logo.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 
-const links = [
+const baseLinks = [
   { to: "/how-it-works", label: "How it works" },
-  { to: "/pricing", label: "Pricing" },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, isSubscribed, signOut } = useAuth();
   const navigate = useNavigate();
+  const links = isSubscribed ? baseLinks : [...baseLinks, { to: "/pricing", label: "Pricing" }];
 
   return (
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-line">

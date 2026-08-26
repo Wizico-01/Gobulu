@@ -23,7 +23,7 @@ supabase/
 ## Fibonacci retracement
 
 `src/engine/fibonacci.js` computes a retracement from the most recent swing high/low on the
-entry timeframe. Only the **50.0%** and **61.8%** levels count toward the Gobulu score
+entry timeframe. Only the **50.0%** and **61.8%** levels count toward the Confluence score
 (per Kceemu's system) — other standard levels (38.2%, 100%) are computed and shown in the
 `FibPanel` for reference only, but don't add to the score. This is now an 8th Gobulu
 factor, so the score/strength scale is out of 8, not 7.

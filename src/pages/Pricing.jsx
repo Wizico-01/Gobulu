@@ -1,88 +1,75 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import PricingCard from "../components/PricingCard.jsx";
-import { startSubscriptionCheckout } from "../lib/paystack.js";
+import { startFlutterwaveCheckout } from "../lib/flutterwave.js";
 import { callEdgeFunction } from "../lib/api.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
-// Replace priceNaira / planCode with your real Paystack Plan codes
-// (created in the Paystack dashboard under Plans) once you're live.
-const PLANS = [
-  {
-    id: "starter",
-    name: "Starter",
-    description: "One trading style, core alerts.",
-    priceNaira: 100,
-    planCode: "PLN_mhdx4k2ol5kdudb",
-    features: ["1 trading style (swing, day, or scalp)", "Up to 3 symbols", "GOBULU alerts", "Risk & lot size calculator"],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    description: "Full cascade access, all styles.",
-    priceNaira: 35000,
-    planCode: "PLN_hofp2dt3rbkn9bs",
-    features: ["All 3 trading styles", "Unlimited symbols", "GOBULU alerts + alert log", "Priority data refresh"],
-    highlight: true,
-  },
-];
+const PAYMENT_PLAN_ID = "167686"; // from Step 1
 
 export default function Pricing() {
-  const { user, profile } = useAuth();
+  const { user, profile, isSubscribed } = useAuth();
   const navigate = useNavigate();
-  const [loadingPlan, setLoadingPlan] = useState(null);
+
+  useEffect(() => {
+    if (isSubscribed) navigate("/dashboard");
+  }, [isSubscribed, navigate]);
+  const [loading, setLoading] = useState(false);
   const [verifyError, setVerifyError] = useState("");
 
-  async function handleSelect(plan) {
+  async function handleSubscribe() {
     if (!user) return navigate("/signup");
     setVerifyError("");
-    setLoadingPlan(plan.id);
+    setLoading(true);
     try {
-      await startSubscriptionCheckout({
+      await startFlutterwaveCheckout({
         email: user.email,
-        planCode: plan.planCode,
-        amountKobo: plan.priceNaira * 100,
+        name: user.email,
+        paymentPlanId: PAYMENT_PLAN_ID,
         onSuccess: async (response) => {
           try {
-            setLoadingPlan(plan.id);
-            await callEdgeFunction("paystack-verify", { reference: response.reference, planId: plan.id });
+            await callEdgeFunction("flutterwave-verify", { transactionId: response.transaction_id });
             navigate("/dashboard");
           } catch (err) {
-            console.error("Verification failed:", err);
-            setVerifyError(
-              "Payment went through, but we couldn't verify it automatically. Check that the paystack-verify function is deployed and PAYSTACK_SECRET_KEY is set, then contact support with your payment reference: " + response.reference
-            );
-            setLoadingPlan(null);
+            console.error(err);
+            setVerifyError("Payment went through, but we couldn't verify it automatically. Contact support with your transaction ID: " + response.transaction_id);
+            setLoading(false);
           }
         },
-        onClose: () => setLoadingPlan(null),
+        onClose: () => setLoading(false),
       });
     } catch (err) {
       console.error(err);
-      setLoadingPlan(null);
+      setLoading(false);
     }
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-5 py-16">
-      <div className="text-center max-w-lg mx-auto">
-        <span className="text-xs font-bold uppercase tracking-wide text-royal">Pricing</span>
-        <h1 className="font-display text-3xl font-bold text-ink mt-2">Simple monthly billing, cancel anytime.</h1>
-        <p className="text-ink/60 mt-3">Billed monthly in Naira via Paystack. {profile?.subscription_status === "active" ? "You're currently subscribed." : ""}</p>
-      </div>
+    <div className="max-w-md mx-auto px-5 py-16 text-center">
+      <span className="text-xs font-bold uppercase tracking-wide text-royal">Pricing</span>
+      <h1 className="font-display text-3xl font-bold text-ink mt-2">Simple monthly billing.</h1>
+      <p className="text-ink/60 mt-3">Billed monthly in USD. {profile?.subscription_status === "active" ? "You're currently subscribed." : ""}</p>
+
       {verifyError && (
-        <div className="max-w-lg mx-auto mt-6 rounded-xl border border-bear/30 bg-bear/5 px-4 py-3">
+        <div className="mt-6 rounded-xl border border-bear/30 bg-bear/5 px-4 py-3 text-left">
           <p className="text-sm text-bear font-medium">{verifyError}</p>
         </div>
       )}
-      <div className="grid sm:grid-cols-2 gap-6 mt-12">
-        {PLANS.map((plan) => (
-          <PricingCard key={plan.id} plan={plan} onSelect={handleSelect} loading={loadingPlan === plan.id} />
-        ))}
+
+      <div className="mt-10 rounded-2xl border border-royal p-8 shadow-xl shadow-royal/10 bg-white">
+        <h3 className="font-display text-lg font-bold text-ink">Full Access</h3>
+        <p className="text-sm text-ink/60 mt-1">All trading styles, all symbols, full analysis.</p>
+        <div className="mt-5 flex items-baseline justify-center gap-1">
+          <span className="font-display text-4xl font-bold text-ink">$1</span>
+          <span className="text-sm text-ink/50">/ month</span>
+        </div>
+        <button
+          onClick={handleSubscribe}
+          disabled={loading}
+          className="mt-7 w-full py-3 rounded-xl text-sm font-bold text-white bg-royal"
+        >
+          {loading ? "Redirecting…" : "Subscribe"}
+        </button>
       </div>
-      <p className="text-xs text-ink/40 text-center mt-8">
-        Prices and plan codes shown are placeholders, set your real amounts and Paystack Plan codes before going live.
-      </p>
     </div>
   );
 }
