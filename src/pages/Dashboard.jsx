@@ -7,6 +7,7 @@ import RiskPanel from "../components/dashboard/RiskPanel.jsx";
 import AlertLog from "../components/dashboard/AlertLog.jsx";
 import FibPanel from "../components/dashboard/FibPanel.jsx";
 import { buildLiveAnalysis } from "../engine/dataProvider.js";
+import { supabase } from "../lib/supabaseClient.js";
 import { fetchCandles } from "../lib/api.js";
 import { FOREX_SYMBOLS, CASCADES, fmtPrice } from "../engine/symbols.js";
 
@@ -67,6 +68,7 @@ export default function Dashboard() {
   const [stopLossPips, setStopLossPips] = useState(20);
   const [alarmLog, setAlarmLog] = useState([]);
   const [analysis, setAnalysis] = useState(null);
+  const [history, setHistory] = useState([]);
   const [liveDataOk, setLiveDataOk] = useState(true);
   const [notifPermission, setNotifPermission] = useState(
     typeof Notification !== "undefined" ? Notification.permission : "unsupported"
@@ -127,6 +129,7 @@ export default function Dashboard() {
         setAnalysis(result);
         setLiveDataOk(anyLive);
         setIsAnalyzing(false);
+        if (isManual) saveHistoryEntry(result, symbol, profile.style);
       };
       if (isManual && elapsed < ANALYZE_MS) setTimeout(finish, ANALYZE_MS - elapsed);
       else finish();
@@ -162,6 +165,41 @@ export default function Dashboard() {
     Notification.requestPermission().then(setNotifPermission);
   }, []);
 
+    const saveHistoryEntry = useCallback(async (result, sym, style) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) return;
+    await supabase.from("analysis_history").insert({
+      user_id: userId,
+      symbol: sym,
+      trading_style: style,
+      entry_timeframe: result.entryTierName,
+      trend: result.tiers[result.tiers.length - 1]?.trend,
+      score: result.score,
+      strength: result.strength,
+      pattern_name: result.pattern?.name ?? null,
+      direction: result.tradePlan?.direction ?? null,
+      entry_price: result.tradePlan?.entryPrice ?? null,
+    });
+    loadHistory();
+  }, []);
+
+  const loadHistory = useCallback(async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData?.session?.user?.id;
+    if (!userId) return;
+    const { data } = await supabase
+      .from("analysis_history")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (data) setHistory(data);
+  }, []);
+
+  useEffect(() => {
+    if (profile) loadHistory();
+  }, [profile, loadHistory]);
   const runAnalysis = useCallback((sym) => {
     triggerSourceRef.current = "manual";
     setSymbol(sym);
@@ -331,7 +369,30 @@ export default function Dashboard() {
           <ChecklistPanel checklist={analysis.checklist} score={analysis.score} strength={analysis.strength} />
           <FibPanel fib={analysis.fib} symbol={symbol} decimals={analysis.decimals} />
           <RiskPanel accountSize={profile.accountSize} riskPercent={profile.riskPercent} stopLossPips={stopLossPips} setStopLossPips={setStopLossPips} symbol={symbol} />
-          <AlertLog log={alarmLog} />
+                    <AlertLog log={alarmLog} />
+
+          {history.length > 0 && (
+            <div className="rounded-xl border border-line bg-white p-4">
+              <p className="text-sm font-bold text-ink mb-3">Analysis history</p>
+              <div className="space-y-3">
+                {history.map((h) => (
+                  <div key={h.id} className="rounded-lg bg-mist p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-bold text-ink">{h.symbol}</span>
+                      <span className="text-[10px] text-ink/40">{new Date(h.created_at).toLocaleString()}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 text-[11px]">
+                      <span className="px-2 py-0.5 rounded-full bg-white text-ink/70 font-medium capitalize">{h.trading_style} · {h.entry_timeframe}</span>
+                      <span className="px-2 py-0.5 rounded-full bg-white text-ink/70 font-medium capitalize">{h.trend ?? "—"}</span>
+                      {h.pattern_name && <span className="px-2 py-0.5 rounded-full bg-white text-ink/70 font-medium">{h.pattern_name}</span>}
+                      {h.direction && <span className={`px-2 py-0.5 rounded-full font-bold ${h.direction === "buy" ? "bg-bull/10 text-bull" : "bg-bear/10 text-bear"}`}>{h.direction.toUpperCase()}</span>}
+                      <span className="px-2 py-0.5 rounded-full bg-royal/10 text-royal font-bold">{h.score}/9 · {h.strength}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

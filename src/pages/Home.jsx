@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, LayoutGrid, Bell, Shield, GitBranch } from "lucide-react";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const FEATURES = [
   { icon: GitBranch, title: "Top-down cascade", body: "Bias, direction, trend, and entry, each timeframe checked in order, the way disciplined traders actually work." },
@@ -10,6 +11,7 @@ const FEATURES = [
 ];
 
 export default function Home() {
+  const { user, isSubscribed } = useAuth();
   return (
     <div>
       {/* Hero Section */}
@@ -28,8 +30,8 @@ export default function Home() {
               when enough of them agree.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/signup" className="inline-flex items-center gap-1.5 bg-white text-royal-deep font-bold text-sm px-5 py-3 rounded-xl">
-                Start free trial <ArrowRight size={16} />
+              <Link to={isSubscribed ? "/dashboard" : user ? "/pricing" : "/signup"} className="inline-flex items-center gap-1.5 bg-white text-royal-deep font-bold text-sm px-5 py-3 rounded-xl">
+                {isSubscribed ? "Analyze Now" : "Start Analysing"} <ArrowRight size={16} />
               </Link>
               <Link to="/how-it-works" className="inline-flex items-center gap-1.5 text-white font-semibold text-sm px-5 py-3 rounded-xl border border-white/25">
                 See how it works
@@ -37,13 +39,17 @@ export default function Home() {
             </div>
           </div>
 
+                    {/* Hero video — place your file at public/hero.mp4 */}
           <div className="rounded-2xl overflow-hidden border border-white/10">
-            <img 
-              src="./hero.jpg" 
-              alt="Gobulu app preview" 
-              className="w-full h-auto object-cover" 
-            />
-          </div>
+  <video
+    src={`${import.meta.env.BASE_URL}hero.mp4`}
+    autoPlay
+    loop
+    muted
+    playsInline
+    className="w-full h-auto object-cover"
+  />
+</div>
         </div>
       </section>
 
@@ -70,8 +76,8 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-5 py-16 text-center">
           <h2 className="font-display text-2xl font-bold text-ink">Stop staring at four charts at once.</h2>
           <p className="text-ink/60 mt-2 max-w-md mx-auto">Set your style and risk profile once. Let the cascade tell you when it's actually worth looking.</p>
-          <Link to="/signup" className="inline-flex items-center gap-1.5 bg-royal text-white font-bold text-sm px-6 py-3 rounded-xl mt-6">
-            Start your free trial <ArrowRight size={16} />
+          <Link to={isSubscribed ? "/dashboard" : user ? "/pricing" : "/signup"} className="inline-flex items-center gap-1.5 bg-royal text-white font-bold text-sm px-6 py-3 rounded-xl mt-6">
+            {isSubscribed ? "Analyze Now" : "Start Analysing"} <ArrowRight size={16} />
           </Link>
         </div>
       </section>

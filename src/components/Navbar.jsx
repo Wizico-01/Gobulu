@@ -36,7 +36,16 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           {user ? (
             <>
-              <Link to="/dashboard" className="text-sm font-semibold text-ink/80 hover:text-ink">Dashboard</Link>
+                            {isSubscribed && (
+                <>
+                  <Link to="/dashboard" className="text-sm font-semibold text-ink/70 hover:text-ink">
+                    Dashboard
+                  </Link>
+                  <Link to="/analyze" className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white">
+                    Analyze Now
+                  </Link>
+                </>
+              )}
               <button
                 onClick={async () => { await signOut(); navigate("/"); }}
                 className="text-sm font-bold px-4 py-2 rounded-lg border border-line text-ink"
@@ -48,7 +57,7 @@ export default function Navbar() {
             <>
               <Link to="/login" className="text-sm font-semibold text-ink/80 hover:text-ink">Log in</Link>
               <Link to="/signup" className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white">
-                Start free trial
+                Start analysing
               </Link>
             </>
           )}
@@ -66,13 +75,27 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
-          <div className="pt-2 flex gap-3">
+          <div className="pt-2 flex flex-col gap-3">
             {user ? (
-              <Link to="/dashboard" className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white">Dashboard</Link>
+              <>
+                {isSubscribed && (
+                  <Link to="/dashboard" onClick={() => setOpen(false)} className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white text-center">
+                    Analyze Now
+                  </Link>
+                )}
+                <button
+                  onClick={async () => { await signOut(); setOpen(false); navigate("/"); }}
+                  className="text-sm font-bold px-4 py-2 rounded-lg border border-line text-ink"
+                >
+                  Sign out
+                </button>
+              </>
             ) : (
               <>
-                <Link to="/login" className="text-sm font-semibold text-ink/80">Log in</Link>
-                <Link to="/signup" className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white">Start free trial</Link>
+                <Link to="/login" onClick={() => setOpen(false)} className="text-sm font-semibold text-ink/80">Log in</Link>
+                <Link to="/signup" onClick={() => setOpen(false)} className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white text-center">
+                  Start Analysing
+                </Link>
               </>
             )}
           </div>
