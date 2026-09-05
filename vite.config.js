@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/Gobulu/',
+  base: '/',
   build: {
-    outDir: 'docs', // Tells Vite to output build files into /docs instead of /dist
+    outDir: 'docs',
   },
 })
