@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 
 const STEPS = [
   {
@@ -42,6 +43,8 @@ const STEPS = [
 ];
 
 export default function HowItWorks() {
+  const { user } = useAuth();
+
   return (
     <div className="max-w-3xl mx-auto px-5 py-16">
       <span className="text-xs font-bold uppercase tracking-wide text-royal">How it works</span>
@@ -61,12 +64,14 @@ export default function HowItWorks() {
         ))}
       </div>
 
-      <div className="mt-14 rounded-2xl bg-mist p-6 text-center">
-        <p className="font-bold text-ink">Ready to see it on your own pairs?</p>
-        <Link to="/pricing" className="inline-block mt-3 bg-royal text-white font-bold text-sm px-5 py-2.5 rounded-xl">
-          View plans
-        </Link>
-      </div>
+      {!user && (
+        <div className="mt-14 rounded-2xl bg-mist p-6 text-center border border-line">
+          <p className="font-bold text-ink">Ready to see it on your own pairs?</p>
+          <Link to="/pricing" className="inline-block mt-3 bg-royal text-white font-bold text-sm px-5 py-2.5 rounded-xl">
+            View plans
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

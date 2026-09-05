@@ -1,14 +1,13 @@
-// Central design tokens — mirrors tailwind.config.js so JS-driven styles
-// (SVG, inline colors) stay in sync with the Tailwind theme.
 export const C = {
-  royal: "#1A33E8",
-  royalDark: "#0F1F99",
-  royalDeep: "#0A1454",
-  ink: "#0B1330",
-  paper: "#FFFFFF",
-  mist: "#F2F4FC",
-  line: "#DDE2F7",
-  bull: "#0E9F6E",
-  bear: "#E11D48",
-  gold: "#D69E00",
+  royal: "#0A0F2D",     // Deep Navy Primary Buttons
+  royalDark: "#05081A", // Hover Navy
+  royalDeep: "#0A0F2D", // Deep Navy Accent
+  ink: "#0A0F2D",       // Deep Navy Background
+  inkLight: "#11183C",  // Container Navy
+  paper: "#FFFFFF",     // White
+  mist: "#F8FAFC",      // Light Background
+  line: "#E2E8F0",      // Light Border Line
+  bull: "#10B981",
+  bear: "#F43F5E",
+  gold: "#F59E0B",
 };

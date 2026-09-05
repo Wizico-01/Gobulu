@@ -16,7 +16,9 @@ export default function Account() {
         <div className="rounded-xl border border-line p-4">
           <p className="text-xs font-bold uppercase tracking-wide text-ink/40">Subscription</p>
           <p className="text-sm font-semibold text-ink mt-1 capitalize">{profile?.subscription_status ?? "inactive"} {profile?.plan ? `· ${profile.plan}` : ""}</p>
-          <Link to="/pricing" className="text-xs font-semibold text-royal mt-2 inline-block">Manage plan →</Link>
+          {profile?.subscription_status !== "active" && (
+  <Link to="/pricing" className="text-xs font-semibold text-royal mt-2 inline-block">Subscribe →</Link>
+)}
         </div>
         <button onClick={signOut} className="w-full rounded-xl border border-line py-3 text-sm font-bold text-ink">Sign out</button>
       </div>

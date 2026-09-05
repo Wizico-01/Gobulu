@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshCw, Bell, Circle, Settings, Wifi, WifiOff, BellRing, GitBranch, Target, TrendingUp, Activity, Search } from "lucide-react";
+import { RefreshCw, Bell, Circle, Wifi, WifiOff, BellRing, GitBranch, Target, TrendingUp, Activity, Search } from "lucide-react";
 import SetupPanel from "../components/dashboard/SetupPanel.jsx";
 import TierCard from "../components/dashboard/TierCard.jsx";
 import ChecklistPanel from "../components/dashboard/ChecklistPanel.jsx";
@@ -8,6 +8,7 @@ import AlertLog from "../components/dashboard/AlertLog.jsx";
 import FibPanel from "../components/dashboard/FibPanel.jsx";
 import { buildLiveAnalysis } from "../engine/dataProvider.js";
 import { supabase } from "../lib/supabaseClient.js";
+import { subscribeToPush, saveWatch } from "../lib/push.js";
 import { fetchCandles } from "../lib/api.js";
 import { FOREX_SYMBOLS, CASCADES, fmtPrice } from "../engine/symbols.js";
 
@@ -160,12 +161,21 @@ export default function Dashboard() {
     }
   }, [analysis, symbol, notifPermission]);
 
-  const requestNotifications = useCallback(() => {
+    const requestNotifications = useCallback(async () => {
     if (typeof Notification === "undefined") return;
-    Notification.requestPermission().then(setNotifPermission);
+    const permission = await Notification.requestPermission();
+    setNotifPermission(permission);
+    if (permission === "granted") {
+      try {
+        await subscribeToPush();
+      } catch (err) {
+        console.error("Push subscription failed:", err);
+      }
+    }
   }, []);
 
     const saveHistoryEntry = useCallback(async (result, sym, style) => {
+    if (notifPermission === "granted") saveWatch(sym, style);
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
     if (!userId) return;
@@ -181,25 +191,7 @@ export default function Dashboard() {
       direction: result.tradePlan?.direction ?? null,
       entry_price: result.tradePlan?.entryPrice ?? null,
     });
-    loadHistory();
   }, []);
-
-  const loadHistory = useCallback(async () => {
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    if (!userId) return;
-    const { data } = await supabase
-      .from("analysis_history")
-      .select("*")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) setHistory(data);
-  }, []);
-
-  useEffect(() => {
-    if (profile) loadHistory();
-  }, [profile, loadHistory]);
   const runAnalysis = useCallback((sym) => {
     triggerSourceRef.current = "manual";
     setSymbol(sym);
@@ -243,9 +235,7 @@ export default function Dashboard() {
                   <BellRing size={13} /> Notify me at entry zone
                 </button>
               )}
-              <button onClick={() => { setProfile(null); setSymbol(null); setAnalysis(null); }} className="text-white/80 hover:text-white transition-colors" aria-label="Settings">
-                <Settings size={18} />
-              </button>
+              
             </div>
           </div>
 

@@ -15,17 +15,25 @@ export default function Navbar() {
   const links = isSubscribed ? baseLinks : [...baseLinks, { to: "/pricing", label: "Pricing" }];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-line">
-      <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-        <Link to="/"><Logo /></Link>
+    <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-line w-full">
+      {/* w-full, px-4, and justify-between guarantee logo left, menu right */}
+      <div className="w-full px-4 sm:px-6 h-16 flex items-center justify-between">
+        
+        {/* Force logo container to align start (left) */}
+        <div className="flex justify-start items-center">
+          <Link to="/" className="flex items-center">
+            <Logo />
+          </Link>
+        </div>
 
+        {/* Desktop Links */}
         <nav className="hidden md:flex items-center gap-7">
           {links.map((l) => (
             <NavLink
               key={l.to}
               to={l.to}
               className={({ isActive }) =>
-                `text-sm font-semibold ${isActive ? "text-royal" : "text-ink/70 hover:text-ink"}`
+                `text-sm font-semibold transition-colors ${isActive ? "text-royal" : "text-ink/70 hover:text-ink"}`
               }
             >
               {l.label}
@@ -33,41 +41,47 @@ export default function Navbar() {
           ))}
         </nav>
 
+        {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-3">
           {user ? (
             <>
-                            {isSubscribed && (
+              {isSubscribed && (
                 <>
-                  <Link to="/dashboard" className="text-sm font-semibold text-ink/70 hover:text-ink">
+                  <Link to="/dashboard" className="text-sm font-semibold text-ink/70 hover:text-ink transition-colors">
                     Dashboard
                   </Link>
-                  <Link to="/analyze" className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white">
+                  <Link to="/analyze" className="text-sm font-bold px-4 py-2 rounded-lg bg-royal hover:bg-royal-dark text-white transition-colors shadow-sm">
                     Analyze Now
                   </Link>
                 </>
               )}
+              <Link to="/account" className="text-sm font-semibold text-ink/70 hover:text-ink transition-colors">
+                Account
+              </Link>
               <button
                 onClick={async () => { await signOut(); navigate("/"); }}
-                className="text-sm font-bold px-4 py-2 rounded-lg border border-line text-ink"
+                className="text-sm font-bold px-4 py-2 rounded-lg border border-line text-ink hover:bg-mist transition-colors"
               >
                 Sign out
               </button>
             </>
           ) : (
             <>
-              <Link to="/login" className="text-sm font-semibold text-ink/80 hover:text-ink">Log in</Link>
-              <Link to="/signup" className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white">
+              <Link to="/login" className="text-sm font-semibold text-ink/80 hover:text-ink transition-colors">Log in</Link>
+              <Link to="/signup" className="text-sm font-bold px-4 py-2 rounded-lg bg-royal hover:bg-royal-dark text-white transition-colors shadow-sm">
                 Start analysing
               </Link>
             </>
           )}
         </div>
 
-        <button className="md:hidden" onClick={() => setOpen((o) => !o)}>
+        {/* Mobile Hamburger Button */}
+        <button className="md:hidden ml-auto" onClick={() => setOpen((o) => !o)}>
           {open ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
+      {/* Mobile Menu Dropdown */}
       {open && (
         <div className="md:hidden border-t border-line px-5 py-4 space-y-3 bg-white">
           {links.map((l) => (
@@ -79,13 +93,21 @@ export default function Navbar() {
             {user ? (
               <>
                 {isSubscribed && (
-                  <Link to="/dashboard" onClick={() => setOpen(false)} className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white text-center">
-                    Analyze Now
-                  </Link>
+                  <>
+                    <Link to="/dashboard" onClick={() => setOpen(false)} className="text-sm font-semibold text-ink">
+                      Dashboard
+                    </Link>
+                    <Link to="/analyze" onClick={() => setOpen(false)} className="text-sm font-bold px-4 py-2 rounded-lg bg-royal hover:bg-royal-dark text-white text-center transition-colors">
+                      Analyze Now
+                    </Link>
+                  </>
                 )}
+                <Link to="/account" onClick={() => setOpen(false)} className="text-sm font-semibold text-ink">
+                  Account
+                </Link>
                 <button
                   onClick={async () => { await signOut(); setOpen(false); navigate("/"); }}
-                  className="text-sm font-bold px-4 py-2 rounded-lg border border-line text-ink"
+                  className="text-sm font-bold px-4 py-2 rounded-lg border border-line text-ink text-center hover:bg-mist transition-colors"
                 >
                   Sign out
                 </button>
@@ -93,7 +115,7 @@ export default function Navbar() {
             ) : (
               <>
                 <Link to="/login" onClick={() => setOpen(false)} className="text-sm font-semibold text-ink/80">Log in</Link>
-                <Link to="/signup" onClick={() => setOpen(false)} className="text-sm font-bold px-4 py-2 rounded-lg bg-royal text-white text-center">
+                <Link to="/signup" onClick={() => setOpen(false)} className="text-sm font-bold px-4 py-2 rounded-lg bg-royal hover:bg-royal-dark text-white text-center transition-colors">
                   Start Analysing
                 </Link>
               </>
