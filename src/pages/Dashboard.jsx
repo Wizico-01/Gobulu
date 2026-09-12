@@ -1,5 +1,17 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshCw, Bell, Circle, Wifi, WifiOff, BellRing, GitBranch, Target, TrendingUp, Activity, Search } from "lucide-react";
+import {
+  RefreshCw,
+  Bell,
+  Circle,
+  Wifi,
+  WifiOff,
+  BellRing,
+  GitBranch,
+  Target,
+  TrendingUp,
+  Activity,
+  Search,
+} from "lucide-react";
 import SetupPanel from "../components/dashboard/SetupPanel.jsx";
 import TierCard from "../components/dashboard/TierCard.jsx";
 import ChecklistPanel from "../components/dashboard/ChecklistPanel.jsx";
@@ -13,8 +25,14 @@ import { fetchCandles } from "../lib/api.js";
 import { FOREX_SYMBOLS, CASCADES, fmtPrice } from "../engine/symbols.js";
 
 const TF_MAP = {
-  Monthly: "1month", Weekly: "1week", Daily: "1day",
-  "4H": "4h", "1H": "1h", "30M": "30min", "15M": "15min", "1M/5M": "5min",
+  Monthly: "1month",
+  Weekly: "1week",
+  Daily: "1day",
+  "4H": "4h",
+  "1H": "1h",
+  "30M": "30min",
+  "15M": "15min",
+  "1M/5M": "5min",
 };
 
 const AUTO_REFRESH_MS = 30000;
@@ -161,7 +179,7 @@ export default function Dashboard() {
     }
   }, [analysis, symbol, notifPermission]);
 
-    const requestNotifications = useCallback(async () => {
+  const requestNotifications = useCallback(async () => {
     if (typeof Notification === "undefined") return;
     const permission = await Notification.requestPermission();
     setNotifPermission(permission);
@@ -174,7 +192,7 @@ export default function Dashboard() {
     }
   }, []);
 
-    const saveHistoryEntry = useCallback(async (result, sym, style) => {
+  const saveHistoryEntry = useCallback(async (result, sym, style) => {
     if (notifPermission === "granted") saveWatch(sym, style);
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData?.session?.user?.id;
@@ -191,7 +209,8 @@ export default function Dashboard() {
       direction: result.tradePlan?.direction ?? null,
       entry_price: result.tradePlan?.entryPrice ?? null,
     });
-  }, []);
+  }, [notifPermission]);
+
   const runAnalysis = useCallback((sym) => {
     triggerSourceRef.current = "manual";
     setSymbol(sym);
@@ -231,11 +250,10 @@ export default function Dashboard() {
             <span className="text-white font-display font-bold text-lg">{cascade?.label ?? "Trading"} cascade</span>
             <div className="flex items-center gap-3">
               {notifPermission !== "granted" && notifPermission !== "unsupported" && (
-                <button onClick={requestNotifications} title="Get notified the moment price reaches a confirmed entry zone with 5+ Gobulu" className="flex items-center gap-1 text-white/90 text-xs font-semibold bg-white/15 rounded-full px-3 py-1.5 transition-colors hover:bg-white/25">
-                  <BellRing size={13} /> Notify me at entry zone
-                </button>
+                <button type="button" onClick={requestNotifications} title="Get notified the moment price reaches a confirmed entry zone with 5+ confluence" className="flex items-center gap-1 text-white/90 text-xs font-semibold bg-white/15 rounded-full px-3 py-1.5 transition-colors hover:bg-white/25">
+                     <BellRing size={13} /> Notify me at entry zone
+                 </button>
               )}
-              
             </div>
           </div>
 
@@ -264,7 +282,7 @@ export default function Dashboard() {
             <div className="flex items-end justify-between">
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-white/70 text-[11px] font-semibold uppercase tracking-wide">Live price (Twelve Data)</p>
+                  <p className="text-white/70 text-[11px] font-semibold uppercase tracking-wide">Live price (Trading View)</p>
                   {liveDataOk ? <Wifi size={11} className="text-white/60" /> : <WifiOff size={11} className="text-gold" />}
                 </div>
                 <p className="text-white text-2xl font-extrabold font-nums">{fmtPrice(symbol, analysis.livePrice)}</p>
@@ -292,10 +310,10 @@ export default function Dashboard() {
               </div>
             </button>
           ) : (
-                        <div className="rounded-xl p-4 flex items-center gap-3 border border-line bg-white">
+            <div className="rounded-xl p-4 flex items-center gap-3 border border-line bg-white">
               <Circle size={18} className="text-line" />
               <p className="text-sm font-medium text-ink/50">
-                {analysis.tradePlan?.zoneMessage ?? "No confirmed entry yet — waiting on confluence and candlestick confirmation."}
+                {analysis.tradePlan?.zoneMessage ?? "No confirmed entry yet, waiting on confluence and candlestick confirmation."}
               </p>
             </div>
           )}
@@ -352,14 +370,26 @@ export default function Dashboard() {
           <div>
             <p className="text-xs font-bold uppercase tracking-wide mb-2 text-ink/40">Top-down cascade</p>
             <div className="space-y-2.5">
-              {analysis.tiers.map((tier) => <TierCard key={tier.name} tier={tier} />)}
+              {analysis.tiers.map((tier, idx) => {
+                const isEntryTier = idx === analysis.tiers.length - 1;
+                const showLevel = isEntryTier && analysis.tradePlan?.entryPrice != null;
+                return (
+                  <TierCard
+                    key={tier.name}
+                    tier={tier}
+                    decimals={analysis.decimals}
+                    levelPrice={showLevel ? analysis.tradePlan.entryPrice : undefined}
+                    levelLabel={showLevel ? "Entry" : undefined}
+                  />
+                );
+              })}
             </div>
           </div>
 
           <ChecklistPanel checklist={analysis.checklist} score={analysis.score} strength={analysis.strength} />
           <FibPanel fib={analysis.fib} symbol={symbol} decimals={analysis.decimals} />
           <RiskPanel accountSize={profile.accountSize} riskPercent={profile.riskPercent} stopLossPips={stopLossPips} setStopLossPips={setStopLossPips} symbol={symbol} />
-                    <AlertLog log={alarmLog} />
+          <AlertLog log={alarmLog} />
 
           {history.length > 0 && (
             <div className="rounded-xl border border-line bg-white p-4">

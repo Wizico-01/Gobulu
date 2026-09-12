@@ -181,7 +181,7 @@ function buildTradePlan(entryTier, pattern, fib, keyLevels, livePrice, symbol, b
     if (score >= 5 && confirmed) {
       zoneStatus = "at_zone";
       zoneMessage = fibAligns
-        ? `Price is at the ${entryLabel}, reinforced by the ${fib.atKeyLevel.label}% Fibonacci level lining up here — with strong Gobulu, in line with the trend. Valid entry.`
+        ? `Price is at the ${entryLabel}, reinforced by the ${fib.atKeyLevel.label}% Fibonacci level lining up here, with strong Gobulu, in line with the trend. Valid entry.`
         : `Price is at the ${entryLabel} with strong Confluence in line with the trend, valid entry.`;
     } else {
       zoneStatus = "insufficient";

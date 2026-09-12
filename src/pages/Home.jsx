@@ -22,7 +22,7 @@ export default function Home() {
               Multi-timeframe trade analysis
             </span>
             <h1 className="font-display text-4xl md:text-5xl font-bold text-white leading-tight">
-              FOREX TRADING ENGINE.
+              FOREX TRADING ENGINE
             </h1>
             <p className="text-white/70 mt-5 text-base md:text-lg max-w-md">
               Gobulu runs your top-down analysis across every timeframe automatically,
