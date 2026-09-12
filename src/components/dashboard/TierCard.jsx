@@ -2,18 +2,21 @@ import React from "react";
 import CandlestickChart from "./CandlestickChart.jsx";
 import TrendBadge from "./TrendBadge.jsx";
 
-export default function TierCard({ tier, decimals, levelPrice, levelLabel }) {
-  const sourceBadge = {
-    photo: { label: "From photo", bg: "#FFF6DD", fg: "#D69E00" },
-    missing: { label: "No data yet", bg: "#F1F2F8", fg: "#7B84B5" },
-  }[tier.source];
+export default function TierCard({ tier = {}, decimals = 5, levelPrice, levelLabel }) {
+  // Safe lookup using optional chaining
+  const sourceBadge = tier?.source
+    ? {
+        photo: { label: "From photo", bg: "#FFF6DD", fg: "#D69E00" },
+        missing: { label: "No data yet", bg: "#F1F2F8", fg: "#7B84B5" },
+      }[tier.source]
+    : null;
 
-  // Extract latest price from candles or labeled data
+  // Extract latest price safely
   const latestPrice =
-    tier.candles?.length > 0
-      ? tier.candles[tier.candles.length - 1].close
-      : tier.labeled?.length > 0
-      ? tier.labeled[tier.labeled.length - 1].price
+    tier?.candles?.length > 0
+      ? tier.candles[tier.candles.length - 1]?.close
+      : tier?.labeled?.length > 0
+      ? tier.labeled[tier.labeled.length - 1]?.price
       : null;
 
   const formatP = (val) => {
@@ -27,10 +30,10 @@ export default function TierCard({ tier, decimals, levelPrice, levelLabel }) {
       <div className="flex items-center justify-between mb-1.5">
         <div>
           <p className="text-[11px] font-semibold tracking-wide uppercase text-ink/40">
-            {tier.role}
+            {tier?.role || "TIMEFRAME"}
           </p>
           <div className="flex items-center gap-2">
-            <p className="text-sm font-bold text-ink">{tier.name}</p>
+            <p className="text-sm font-bold text-ink">{tier?.name || "—"}</p>
             {latestPrice && (
               <span className="text-xs font-semibold text-slate-500">
                 ({formatP(latestPrice)})
@@ -47,12 +50,12 @@ export default function TierCard({ tier, decimals, levelPrice, levelLabel }) {
               {sourceBadge.label}
             </span>
           )}
-          <TrendBadge trend={tier.trend} />
+          <TrendBadge trend={tier?.trend} />
         </div>
       </div>
 
       {/* Chart Section */}
-      {tier.labeled?.length > 0 || tier.candles?.length ? (
+      {tier?.labeled?.length > 0 || tier?.candles?.length > 0 ? (
         <CandlestickChart
           candles={tier.candles}
           labeled={tier.labeled}
@@ -64,8 +67,8 @@ export default function TierCard({ tier, decimals, levelPrice, levelLabel }) {
       ) : (
         <div className="h-9 flex items-center">
           <p className="text-[11px] text-ink/30">
-            {tier.source === "photo"
-              ? tier.visionNotes?.summary ?? "Read from uploaded chart"
+            {tier?.source === "photo"
+              ? tier?.visionNotes?.summary ?? "Read from uploaded chart"
               : "Waiting on data"}
           </p>
         </div>
@@ -74,7 +77,7 @@ export default function TierCard({ tier, decimals, levelPrice, levelLabel }) {
       {/* Card Footer */}
       <div className="flex items-center justify-between mt-1.5">
         <div className="flex flex-wrap gap-1">
-          {tier.labeled?.slice(-3).map((p, i) => (
+          {tier?.labeled?.slice(-3).map((p, i) => (
             <span
               key={i}
               className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-mist text-royal-dark"
@@ -91,7 +94,7 @@ export default function TierCard({ tier, decimals, levelPrice, levelLabel }) {
             </span>
           )}
 
-          {tier.bos?.occurred && (
+          {tier?.bos?.occurred && (
             <span
               className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
               style={{
