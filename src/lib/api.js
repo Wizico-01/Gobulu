@@ -2,14 +2,20 @@ import { supabase } from "./supabaseClient.js";
 
 export async function callEdgeFunction(name, body, options = {}) {
   const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData?.session?.access_token;
+  const userToken = sessionData?.session?.access_token;
+
+  // Fallback to Supabase Anon Key if user is not logged in
+  const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  const authHeader = userToken ? `Bearer ${userToken}` : `Bearer ${anonKey}`;
 
   const { data, error } = await supabase.functions.invoke(name, {
     body,
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    // Pass signal into Supabase function invocation options
+    headers: {
+      Authorization: authHeader,
+    },
     signal: options.signal,
   });
+
   if (error) throw error;
   return data;
 }
