@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, LayoutGrid, Bell, Shield, GitBranch } from "lucide-react";
+import { ArrowRight, LayoutGrid, Bell, Shield, GitBranch, Volume2, VolumeX } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const FEATURES = [
@@ -12,12 +12,36 @@ const FEATURES = [
 
 export default function Home() {
   const { user, isSubscribed } = useAuth();
+  const [heroMuted, setHeroMuted] = useState(true);
+
   return (
     <div>
-      {/* Hero Section — Changed bg-royal-deep to bg-ink */}
-      <section className="bg-ink">
-        <div className="max-w-6xl mx-auto px-5 pt-16 pb-20 md:pt-24 md:pb-28 grid md:grid-cols-2 gap-12 items-center">
-          <div>
+      {/* Hero Section — full-bleed video background with overlay */}
+      <section className="relative overflow-hidden bg-ink">
+        {/* Background video layer */}
+        <video
+          src={`${import.meta.env.BASE_URL}hero.mp4`}
+          autoPlay
+          loop
+          muted={heroMuted}
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Dark overlay so text stays readable over any footage */}
+        <div className="absolute inset-0 bg-ink/70" />
+
+        {/* Mute/unmute control */}
+        <button
+          onClick={() => setHeroMuted((m) => !m)}
+          className="absolute bottom-5 right-5 z-10 w-9 h-9 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white hover:bg-black/60 transition-colors"
+          aria-label={heroMuted ? "Unmute video" : "Mute video"}
+        >
+          {heroMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+        </button>
+
+        {/* Content sits above the video/overlay */}
+        <div className="relative max-w-6xl mx-auto px-5 pt-16 pb-20 md:pt-24 md:pb-28">
+          <div className="max-w-2xl">
             <span className="inline-block text-xs font-bold uppercase tracking-wide text-white/60 mb-4">
               Multi-timeframe trade analysis
             </span>
@@ -36,18 +60,6 @@ export default function Home() {
                 See how it works
               </Link>
             </div>
-          </div>
-
-          {/* Hero video */}
-          <div className="rounded-2xl overflow-hidden border border-white/10">
-            <video
-              src={`${import.meta.env.BASE_URL}hero.mp4`}
-              autoPlay
-              loop
-              muted
-              playsInline
-              className="w-full h-auto object-cover"
-            />
           </div>
         </div>
       </section>
