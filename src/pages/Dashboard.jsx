@@ -369,20 +369,8 @@ export default function Dashboard() {
 
           <div>
             <p className="text-xs font-bold uppercase tracking-wide mb-2 text-ink/40">Top-down cascade</p>
-            <div className="space-y-2.5">
-              {analysis.tiers.map((tier, idx) => {
-                const isEntryTier = idx === analysis.tiers.length - 1;
-                const showLevel = isEntryTier && analysis.tradePlan?.entryPrice != null;
-                return (
-                  <TierCard
-                    key={tier.name}
-                    tier={tier}
-                    decimals={analysis.decimals}
-                    levelPrice={showLevel ? analysis.tradePlan.entryPrice : undefined}
-                    levelLabel={showLevel ? "Entry" : undefined}
-                  />
-                );
-              })}
+                        <div className="space-y-2.5">
+              {analysis.tiers.map((tier) => <TierCard key={tier.name} tier={tier} />)}
             </div>
           </div>
 
