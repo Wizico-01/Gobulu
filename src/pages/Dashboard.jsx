@@ -35,7 +35,6 @@ const TF_MAP = {
   "1M/5M": "5min",
 };
 
-const AUTO_REFRESH_MS = 30000;
 const ONBOARD_MS = 7000;
 const ANALYZE_MS = 20000;
 
@@ -156,15 +155,6 @@ export default function Dashboard() {
 
     return () => { controller.abort(); };
   }, [profile, symbol, refreshTick]);
-
-  useEffect(() => {
-    if (!profile || !symbol) return;
-    const id = setInterval(() => {
-      triggerSourceRef.current = "auto";
-      setRefreshTick((t) => t + 1);
-    }, AUTO_REFRESH_MS);
-    return () => clearInterval(id);
-  }, [profile, symbol]);
 
   useEffect(() => {
     if (!analysis || notifPermission !== "granted") return;
@@ -369,7 +359,7 @@ export default function Dashboard() {
 
           <div>
             <p className="text-xs font-bold uppercase tracking-wide mb-2 text-ink/40">Top-down cascade</p>
-                        <div className="space-y-2.5">
+            <div className="space-y-2.5">
               {analysis.tiers.map((tier) => <TierCard key={tier.name} tier={tier} />)}
             </div>
           </div>
