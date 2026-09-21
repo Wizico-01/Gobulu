@@ -16,7 +16,17 @@ export async function callEdgeFunction(name, body, options = {}) {
     signal: options.signal,
   });
 
-  if (error) throw error;
+  if (error) {
+    // Check if Supabase returned a 400 (Bad Request / Limit Exceeded) or 429 (Rate Limit)
+    const status = error.status || error.context?.status;
+    if (status === 400 || status === 429) {
+      console.warn(`[${name}] API limit or Bad Request (${status}). Gracefully stopping execution.`);
+      return { values: null, error: "API limit or Bad Request" };
+    }
+
+    throw error;
+  }
+
   return data;
 }
 
