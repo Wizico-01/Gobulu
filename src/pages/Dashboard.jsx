@@ -159,7 +159,7 @@ export default function Dashboard() {
     });
   }, [notifPermission]);
 
-  // Direct click handler (NO useEffect polling or automated triggers)
+  // Direct click handler with request deduplication cache
   const runAnalysis = useCallback(async (symToAnalyze) => {
     if (!profile || !symToAnalyze) return;
 
@@ -169,19 +169,35 @@ export default function Dashboard() {
     const controller = new AbortController();
     const { signal } = controller;
     const analyzeStart = Date.now();
+    const localCache = {}; // Dedupes repetitive timeframe calls during this analysis run
 
     let anyLive = false;
     const getTierCandles = async (tierName) => {
+      const interval = TF_MAP[tierName];
+      const cacheKey = `${symToAnalyze}_${interval}`;
+
+      // Return immediately if this timeframe was already fetched during this click
+      if (localCache[cacheKey]) {
+        return localCache[cacheKey];
+      }
+
       try {
         const { values } = await fetchCandles({ 
           symbol: symToAnalyze, 
-          interval: TF_MAP[tierName], 
+          interval, 
           outputsize: 60, 
           signal 
         });
+
         if (!values) return null;
         anyLive = true;
-        return values.map((v) => ({ open: +v.open, high: +v.high, low: +v.low, close: +v.close })).reverse();
+        
+        const formatted = values
+          .map((v) => ({ open: +v.open, high: +v.high, low: +v.low, close: +v.close }))
+          .reverse();
+
+        localCache[cacheKey] = formatted; // Save to local run cache
+        return formatted;
       } catch (err) {
         if (err.name === "AbortError" || err.message?.includes("aborted")) return null;
         console.error(`Fetch failed for ${symToAnalyze} ${tierName}:`, err.message);
