@@ -82,7 +82,6 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [selectedSymbol, setSelectedSymbol] = useState("EURUSD");
   const [symbol, setSymbol] = useState(null);
-  const [refreshTick, setRefreshTick] = useState(0);
   const [stopLossPips, setStopLossPips] = useState(20);
   const [alarmLog, setAlarmLog] = useState([]);
   const [analysis, setAnalysis] = useState(null);
@@ -92,7 +91,6 @@ export default function Dashboard() {
     typeof Notification !== "undefined" ? Notification.permission : "unsupported"
   );
   const lastNotifiedRef = useRef(null);
-  const triggerSourceRef = useRef("manual");
 
   const [showOnboard, setShowOnboard] = useState(true);
   const [onboardIndex, setOnboardIndex] = useState(0);
@@ -115,46 +113,6 @@ export default function Dashboard() {
     const tick = setInterval(() => setAnalyzeCountdown((c) => (c > 0 ? c - 1 : 0)), 1000);
     return () => { clearInterval(rotate); clearInterval(tick); };
   }, [isAnalyzing]);
-
-  useEffect(() => {
-    if (!profile || !symbol) return;
-    const controller = new AbortController();
-    const { signal } = controller;
-    const isManual = triggerSourceRef.current === "manual";
-    const analyzeStart = Date.now();
-    if (isManual) setIsAnalyzing(true);
-
-    (async () => {
-      let anyLive = false;
-      const getTierCandles = async (tierName) => {
-        try {
-          const { values } = await fetchCandles({ symbol, interval: TF_MAP[tierName], outputsize: 60, signal });
-          if (!values) return null;
-          anyLive = true;
-          return values.map((v) => ({ open: +v.open, high: +v.high, low: +v.low, close: +v.close })).reverse();
-        } catch (err) {
-          if (err.name === "AbortError" || err.message?.includes("aborted")) return null;
-          console.error(`Fetch failed for ${symbol} ${tierName}:`, err.message);
-          return null;
-        }
-      };
-
-      const result = await buildLiveAnalysis(symbol, profile.style, getTierCandles);
-      if (signal.aborted) return;
-
-      const elapsed = Date.now() - analyzeStart;
-      const finish = () => {
-        setAnalysis(result);
-        setLiveDataOk(anyLive);
-        setIsAnalyzing(false);
-        if (isManual) saveHistoryEntry(result, symbol, profile.style);
-      };
-      if (isManual && elapsed < ANALYZE_MS) setTimeout(finish, ANALYZE_MS - elapsed);
-      else finish();
-    })();
-
-    return () => { controller.abort(); };
-  }, [profile, symbol, refreshTick]);
 
   useEffect(() => {
     if (!analysis || notifPermission !== "granted") return;
@@ -201,11 +159,52 @@ export default function Dashboard() {
     });
   }, [notifPermission]);
 
-  const runAnalysis = useCallback((sym) => {
-    triggerSourceRef.current = "manual";
-    setSymbol(sym);
-    setRefreshTick((t) => t + 1);
-  }, []);
+  // Direct click handler (NO useEffect polling or automated triggers)
+  const runAnalysis = useCallback(async (symToAnalyze) => {
+    if (!profile || !symToAnalyze) return;
+
+    setSymbol(symToAnalyze);
+    setIsAnalyzing(true);
+
+    const controller = new AbortController();
+    const { signal } = controller;
+    const analyzeStart = Date.now();
+
+    let anyLive = false;
+    const getTierCandles = async (tierName) => {
+      try {
+        const { values } = await fetchCandles({ 
+          symbol: symToAnalyze, 
+          interval: TF_MAP[tierName], 
+          outputsize: 60, 
+          signal 
+        });
+        if (!values) return null;
+        anyLive = true;
+        return values.map((v) => ({ open: +v.open, high: +v.high, low: +v.low, close: +v.close })).reverse();
+      } catch (err) {
+        if (err.name === "AbortError" || err.message?.includes("aborted")) return null;
+        console.error(`Fetch failed for ${symToAnalyze} ${tierName}:`, err.message);
+        return null;
+      }
+    };
+
+    const result = await buildLiveAnalysis(symToAnalyze, profile.style, getTierCandles);
+
+    const elapsed = Date.now() - analyzeStart;
+    const finish = () => {
+      setAnalysis(result);
+      setLiveDataOk(anyLive);
+      setIsAnalyzing(false);
+      saveHistoryEntry(result, symToAnalyze, profile.style);
+    };
+
+    if (elapsed < ANALYZE_MS) {
+      setTimeout(finish, ANALYZE_MS - elapsed);
+    } else {
+      finish();
+    }
+  }, [profile, saveHistoryEntry]);
 
   const logAlarm = useCallback(() => {
     if (!analysis) return;
@@ -262,6 +261,7 @@ export default function Dashboard() {
           </select>
 
           <button
+            type="button"
             onClick={() => runAnalysis(selectedSymbol)}
             className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl bg-white text-royal font-bold text-sm py-3 transition-transform active:scale-[0.99]"
           >
