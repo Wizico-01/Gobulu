@@ -90,7 +90,9 @@ export default function Dashboard() {
   const [notifPermission, setNotifPermission] = useState(
     typeof Notification !== "undefined" ? Notification.permission : "unsupported"
   );
+  
   const lastNotifiedRef = useRef(null);
+  const abortControllerRef = useRef(null); // Ref to cancel pending fetch requests on re-run
 
   const [showOnboard, setShowOnboard] = useState(true);
   const [onboardIndex, setOnboardIndex] = useState(0);
@@ -159,71 +161,97 @@ export default function Dashboard() {
     });
   }, [notifPermission]);
 
-  // Direct click handler with request deduplication cache
+  // Explicit, click-only run trigger
   const runAnalysis = useCallback(async (symToAnalyze) => {
-    if (!profile || !symToAnalyze) return;
+    const targetSymbol = symToAnalyze || selectedSymbol;
+    if (!profile || !targetSymbol) return;
 
-    setSymbol(symToAnalyze);
+    // Abort previous running requests if any exist
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+    const { signal } = abortControllerRef.current;
+
+    setSymbol(targetSymbol);
     setIsAnalyzing(true);
 
-    const controller = new AbortController();
-    const { signal } = controller;
     const analyzeStart = Date.now();
-    const localCache = {}; // Dedupes repetitive timeframe calls during this analysis run
+    const localCache = {}; // Dedupes repetitive timeframe calls during this single run
 
     let anyLive = false;
     const getTierCandles = async (tierName) => {
       const interval = TF_MAP[tierName];
-      const cacheKey = `${symToAnalyze}_${interval}`;
+      if (!interval || !targetSymbol) return null;
 
-      // Return immediately if this timeframe was already fetched during this click
+      const cacheKey = `${targetSymbol}_${interval}`;
+
       if (localCache[cacheKey]) {
         return localCache[cacheKey];
       }
 
       try {
         const { values } = await fetchCandles({ 
-          symbol: symToAnalyze, 
+          symbol: targetSymbol, 
           interval, 
           outputsize: 60, 
           signal 
         });
 
-        if (!values) return null;
+        if (!values || !Array.isArray(values)) return null;
         anyLive = true;
         
         const formatted = values
           .map((v) => ({ open: +v.open, high: +v.high, low: +v.low, close: +v.close }))
           .reverse();
 
-        localCache[cacheKey] = formatted; // Save to local run cache
+        localCache[cacheKey] = formatted;
         return formatted;
       } catch (err) {
         if (err.name === "AbortError" || err.message?.includes("aborted")) return null;
-        console.error(`Fetch failed for ${symToAnalyze} ${tierName}:`, err.message);
+        console.error(`Fetch failed for ${targetSymbol} ${tierName}:`, err.message);
         return null;
       }
     };
 
-    const result = await buildLiveAnalysis(symToAnalyze, profile.style, getTierCandles);
+    try {
+      const result = await buildLiveAnalysis(targetSymbol, profile.style, getTierCandles);
 
-    const elapsed = Date.now() - analyzeStart;
-    const finish = () => {
-      setAnalysis(result);
-      setLiveDataOk(anyLive);
-      setIsAnalyzing(false);
-      saveHistoryEntry(result, symToAnalyze, profile.style);
-    };
+      if (signal.aborted) return;
 
-    if (elapsed < ANALYZE_MS) {
-      setTimeout(finish, ANALYZE_MS - elapsed);
-    } else {
-      finish();
+      const elapsed = Date.now() - analyzeStart;
+      const finish = () => {
+        if (signal.aborted) return;
+        setAnalysis(result);
+        setLiveDataOk(anyLive);
+        setIsAnalyzing(false);
+        saveHistoryEntry(result, targetSymbol, profile.style);
+      };
+
+      if (elapsed < ANALYZE_MS) {
+        setTimeout(finish, ANALYZE_MS - elapsed);
+      } else {
+        finish();
+      }
+    } catch (err) {
+      if (!signal.aborted) {
+        setIsAnalyzing(false);
+        console.error("Analysis failed:", err);
+      }
     }
-  }, [profile, saveHistoryEntry]);
+  }, [profile, selectedSymbol, saveHistoryEntry]);
+
+  // Clean up any ongoing fetch controllers on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const logAlarm = useCallback(() => {
-    if (!analysis) return;
+    if (!analysis || !symbol) return;
     setAlarmLog((log) =>
       [{ symbol, tf: analysis.entryTierName, score: analysis.score, pattern: analysis.pattern?.name, time: new Date().toLocaleTimeString() }, ...log].slice(0, 6)
     );
@@ -242,7 +270,7 @@ export default function Dashboard() {
   }
 
   if (isAnalyzing) {
-    return <SpinnerSplash slides={ANALYZE_SLIDES} index={analyzeIndex} subtitle={`Analysing ${symbol} · ${analyzeCountdown}s`} />;
+    return <SpinnerSplash slides={ANALYZE_SLIDES} index={analyzeIndex} subtitle={`Analysing ${symbol || selectedSymbol} · ${analyzeCountdown}s`} />;
   }
 
   const cascade = CASCADES[profile.style];
@@ -411,4 +439,4 @@ export default function Dashboard() {
       )}
     </div>
   );
-}
+      }
