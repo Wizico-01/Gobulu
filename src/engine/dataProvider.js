@@ -212,7 +212,13 @@ export async function buildLiveAnalysis(symbol, style, getTierCandles, visionByT
   const base = basePriceFor(symbol);
   const tolerance = base * 0.0012;
 
-  const candleResults = await Promise.all(cascade.tiers.map((t) => getTierCandles(t)));
+  const candleResults = [];
+for (const tierName of cascade.tiers) {
+  const result = await getTierCandles(tierName);
+  candleResults.push(result);
+  // Small delay between tier fetches to stay under Twelve Data's per-minute rate limit
+  await new Promise((resolve) => setTimeout(resolve, 200));
+}
 
   const tiers = cascade.tiers.map((tierName, idx) => {
     const role = cascade.roles[idx];
