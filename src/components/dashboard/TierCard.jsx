@@ -2,7 +2,7 @@ import React from "react";
 import CandlestickChart from "./CandlestickChart.jsx";
 import TrendBadge from "./TrendBadge.jsx";
 
-export default function TierCard({ tier }) {
+export default function TierCard({ tier, decimals }) {
   const sourceBadge = {
     photo: { label: "From photo", bg: "#FFF6DD", fg: "#D69E00" },
     missing: { label: "No data yet", bg: "#F1F2F8", fg: "#7B84B5" },
@@ -25,7 +25,7 @@ export default function TierCard({ tier }) {
         </div>
       </div>
       {tier.labeled.length > 0 || tier.candles?.length ? (
-        <CandlestickChart candles={tier.candles} labeled={tier.labeled} trend={tier.trend} />
+        <CandlestickChart candles={tier.candles} labeled={tier.labeled} trend={tier.trend} decimals={decimals} />
       ) : (
         <div className="h-9 flex items-center">
           <p className="text-[11px] text-ink/30">

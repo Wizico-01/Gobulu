@@ -404,7 +404,7 @@ export default function Dashboard() {
           <div>
             <p className="text-xs font-bold uppercase tracking-wide mb-2 text-ink/40">Top-down cascade</p>
             <div className="space-y-2.5">
-              {analysis.tiers.map((tier) => <TierCard key={tier.name} tier={tier} />)}
+              {analysis.tiers.map((tier) => <TierCard key={tier.name} tier={tier} decimals={analysis.decimals} />)}
             </div>
           </div>
 
