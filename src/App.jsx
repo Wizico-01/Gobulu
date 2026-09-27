@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import AdminGate from "./components/AdminGate.jsx";
 import Home from "./pages/Home.jsx";
 import HowItWorks from "./pages/HowItWorks.jsx";
 import Pricing from "./pages/Pricing.jsx";
@@ -11,6 +12,7 @@ import Signup from "./pages/Signup.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Account from "./pages/Account.jsx";
 import History from "./pages/History.jsx";
+import AdminSignals from "./pages/AdminSignals.jsx";
 
 export default function App() {
   return (
@@ -23,7 +25,7 @@ export default function App() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-                    <Route
+          <Route
             path="/analyze"
             element={
               <ProtectedRoute>
@@ -45,6 +47,14 @@ export default function App() {
               <ProtectedRoute>
                 <Account />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminGate>
+                <AdminSignals />
+              </AdminGate>
             }
           />
         </Routes>

@@ -1,55 +1,18 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  RefreshCw,
-  Bell,
-  Circle,
-  Wifi,
-  WifiOff,
-  BellRing,
-  GitBranch,
-  Target,
-  TrendingUp,
-  Activity,
-  Search,
-} from "lucide-react";
+import React, { useState } from "react";
+import { Search } from "lucide-react";
 import SetupPanel from "../components/dashboard/SetupPanel.jsx";
-import TierCard from "../components/dashboard/TierCard.jsx";
-import ChecklistPanel from "../components/dashboard/ChecklistPanel.jsx";
-import RiskPanel from "../components/dashboard/RiskPanel.jsx";
-import AlertLog from "../components/dashboard/AlertLog.jsx";
-import FibPanel from "../components/dashboard/FibPanel.jsx";
-import { buildLiveAnalysis } from "../engine/dataProvider.js";
+import SignalCard from "../components/dashboard/SignalCard.jsx";
+import TradingViewChart from "../components/dashboard/TradingViewChart.jsx";
 import { supabase } from "../lib/supabaseClient.js";
-import { subscribeToPush, saveWatch } from "../lib/push.js";
-import { fetchCandles } from "../lib/api.js";
-import { FOREX_SYMBOLS, CASCADES, fmtPrice } from "../engine/symbols.js";
+import { FOREX_SYMBOLS } from "../engine/symbols.js";
+import { GitBranch, Target, TrendingUp, Activity, Bell } from "lucide-react";
 
-const TF_MAP = {
-  Monthly: "1month",
-  Weekly: "1week",
-  Daily: "1day",
-  "4H": "4h",
-  "1H": "1h",
-  "30M": "30min",
-  "15M": "15min",
-  "1M/5M": "5min",
-};
-
-const ONBOARD_MS = 7000;
-const ANALYZE_MS = 20000;
-
-const ONBOARD_SLIDES = [
-  { icon: GitBranch, title: "Top-down cascade", desc: "Bias, direction, trend, and entry, checked in order." },
-  { icon: Target, title: "Gobulu scoring", desc: "9 factors, always weighing what's real." },
-  { icon: TrendingUp, title: "Trend-following signals", desc: "Entries always follow the trend, never fight it." },
-];
+const ANALYZE_MS = 3000;
 
 const ANALYZE_SLIDES = [
-  { icon: GitBranch, title: "Reading the top-down cascade", desc: "Checking bias, direction, and trend across every timeframe." },
-  { icon: Activity, title: "Mapping market structure", desc: "Finding higher highs, higher lows, and breaks of structure." },
-  { icon: Target, title: "Locking strong support/resistance and supply/demand zones", desc: "Only proven, retested levels count." },
-  { icon: TrendingUp, title: "Measuring Fibonacci retracement", desc: "Checking the 50% and 61.8% pullback zones." },
-  { icon: Bell, title: "Scanning for reversal candlesticks", desc: "Engulfing, harami, pin bars, and more, always with the trend." },
+  { icon: GitBranch, title: "Checking today's signals", desc: "Looking for a posted call on this pair." },
+  { icon: Activity, title: "Pulling live chart", desc: "Loading the current TradingView data." },
+  { icon: Target, title: "Preparing your trade plan", desc: "Entry, stop loss, and take profit." },
 ];
 
 function SpinnerSplash({ slides, index, subtitle }) {
@@ -61,18 +24,13 @@ function SpinnerSplash({ slides, index, subtitle }) {
         <div className="relative w-24 h-24 mx-auto mb-8">
           <div className="absolute inset-0 rounded-full border-4 border-white/10" />
           <div className="absolute inset-0 rounded-full border-4 border-white border-t-transparent animate-spin" />
-          <div key={index} className="absolute inset-0 flex items-center justify-center animate-cascade-1">
+          <div key={index} className="absolute inset-0 flex items-center justify-center">
             <Icon size={32} className="text-white" />
           </div>
         </div>
         {subtitle && <p className="text-white/50 text-xs font-bold uppercase tracking-wide mb-2">{subtitle}</p>}
-        <p key={`t-${index}`} className="text-white font-bold text-base animate-cascade-2">{slide.title}</p>
-        <p key={`d-${index}`} className="text-white/60 text-sm mt-2 animate-cascade-3">{slide.desc}</p>
-        <div className="flex items-center justify-center gap-1.5 mt-8">
-          {slides.map((_, i) => (
-            <div key={i} className={`h-1.5 rounded-full transition-all ${i === index % slides.length ? "w-6 bg-white" : "w-1.5 bg-white/30"}`} />
-          ))}
-        </div>
+        <p className="text-white font-bold text-base">{slide.title}</p>
+        <p className="text-white/60 text-sm mt-2">{slide.desc}</p>
       </div>
     </div>
   );
@@ -82,180 +40,32 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null);
   const [selectedSymbol, setSelectedSymbol] = useState("EURUSD");
   const [symbol, setSymbol] = useState(null);
-  const [stopLossPips, setStopLossPips] = useState(20);
-  const [alarmLog, setAlarmLog] = useState([]);
-  const [analysis, setAnalysis] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [liveDataOk, setLiveDataOk] = useState(true);
-  const [notifPermission, setNotifPermission] = useState(
-    typeof Notification !== "undefined" ? Notification.permission : "unsupported"
-  );
-  
-  const lastNotifiedRef = useRef(null);
-  const abortControllerRef = useRef(null); // Ref to cancel pending fetch requests on re-run
-
-  const [showOnboard, setShowOnboard] = useState(true);
-  const [onboardIndex, setOnboardIndex] = useState(0);
+  const [signals, setSignals] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeIndex, setAnalyzeIndex] = useState(0);
-  const [analyzeCountdown, setAnalyzeCountdown] = useState(ANALYZE_MS / 1000);
 
-  useEffect(() => {
-    if (!profile) return;
-    const rotate = setInterval(() => setOnboardIndex((i) => i + 1), 1800);
-    const done = setTimeout(() => setShowOnboard(false), ONBOARD_MS);
-    return () => { clearInterval(rotate); clearTimeout(done); };
-  }, [profile]);
-
-  useEffect(() => {
-    if (!isAnalyzing) return;
-    setAnalyzeIndex(0);
-    setAnalyzeCountdown(ANALYZE_MS / 1000);
-    const rotate = setInterval(() => setAnalyzeIndex((i) => i + 1), 1600);
-    const tick = setInterval(() => setAnalyzeCountdown((c) => (c > 0 ? c - 1 : 0)), 1000);
-    return () => { clearInterval(rotate); clearInterval(tick); };
-  }, [isAnalyzing]);
-
-  useEffect(() => {
-    if (!analysis || notifPermission !== "granted") return;
-    if (analysis.score >= 5 && analysis.alarmActive) {
-      const signature = `${symbol}-${analysis.entryTierName}-${analysis.pattern?.name}-${analysis.score}`;
-      if (lastNotifiedRef.current !== signature) {
-        lastNotifiedRef.current = signature;
-        new Notification(`Gobulu: Strong setup on ${symbol}`, {
-          body: `${analysis.entryTierName} entry · ${analysis.score}/${analysis.total} Gobulu · ${analysis.pattern?.name ?? ""}`,
-        });
-      }
-    }
-  }, [analysis, symbol, notifPermission]);
-
-  const requestNotifications = useCallback(async () => {
-    if (typeof Notification === "undefined") return;
-    const permission = await Notification.requestPermission();
-    setNotifPermission(permission);
-    if (permission === "granted") {
-      try {
-        await subscribeToPush();
-      } catch (err) {
-        console.error("Push subscription failed:", err);
-      }
-    }
-  }, []);
-
-  const saveHistoryEntry = useCallback(async (result, sym, style) => {
-    if (notifPermission === "granted") saveWatch(sym, style);
-    const { data: sessionData } = await supabase.auth.getSession();
-    const userId = sessionData?.session?.user?.id;
-    if (!userId) return;
-    await supabase.from("analysis_history").insert({
-      user_id: userId,
-      symbol: sym,
-      trading_style: style,
-      entry_timeframe: result.entryTierName,
-      trend: result.tiers[result.tiers.length - 1]?.trend,
-      score: result.score,
-      strength: result.strength,
-      pattern_name: result.pattern?.name ?? null,
-      direction: result.tradePlan?.direction ?? null,
-      entry_price: result.tradePlan?.entryPrice ?? null,
-    });
-  }, [notifPermission]);
-
-  // Explicit, click-only run trigger
-  const runAnalysis = useCallback(async (symToAnalyze) => {
-    const targetSymbol = symToAnalyze || selectedSymbol;
-    if (!profile || !targetSymbol) return;
-
-    // Abort previous running requests if any exist
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-    const { signal } = abortControllerRef.current;
-
-    setSymbol(targetSymbol);
+  const runAnalysis = async (targetSymbol) => {
     setIsAnalyzing(true);
+    setAnalyzeIndex(0);
+    const rotate = setInterval(() => setAnalyzeIndex((i) => i + 1), 900);
 
-    const analyzeStart = Date.now();
-    const localCache = {}; // Dedupes repetitive timeframe calls during this single run
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-    let anyLive = false;
-    const getTierCandles = async (tierName) => {
-      const interval = TF_MAP[tierName];
-      if (!interval || !targetSymbol) return null;
+    const { data } = await supabase
+      .from("signals")
+      .select("*")
+      .eq("symbol", targetSymbol)
+      .gte("posted_at", todayStart.toISOString())
+      .order("posted_at", { ascending: false });
 
-      const cacheKey = `${targetSymbol}_${interval}`;
-
-      if (localCache[cacheKey]) {
-        return localCache[cacheKey];
-      }
-
-      try {
-        const { values } = await fetchCandles({ 
-          symbol: targetSymbol, 
-          interval, 
-          outputsize: 60, 
-          signal 
-        });
-
-        if (!values || !Array.isArray(values)) return null;
-        anyLive = true;
-        
-        const formatted = values
-          .map((v) => ({ open: +v.open, high: +v.high, low: +v.low, close: +v.close }))
-          .reverse();
-
-        localCache[cacheKey] = formatted;
-        return formatted;
-      } catch (err) {
-        if (err.name === "AbortError" || err.message?.includes("aborted")) return null;
-        console.error(`Fetch failed for ${targetSymbol} ${tierName}:`, err.message);
-        return null;
-      }
-    };
-
-    try {
-      const result = await buildLiveAnalysis(targetSymbol, profile.style, getTierCandles);
-
-      if (signal.aborted) return;
-
-      const elapsed = Date.now() - analyzeStart;
-      const finish = () => {
-        if (signal.aborted) return;
-        setAnalysis(result);
-        setLiveDataOk(anyLive);
-        setIsAnalyzing(false);
-        saveHistoryEntry(result, targetSymbol, profile.style);
-      };
-
-      if (elapsed < ANALYZE_MS) {
-        setTimeout(finish, ANALYZE_MS - elapsed);
-      } else {
-        finish();
-      }
-    } catch (err) {
-      if (!signal.aborted) {
-        setIsAnalyzing(false);
-        console.error("Analysis failed:", err);
-      }
-    }
-  }, [profile, selectedSymbol, saveHistoryEntry]);
-
-  // Clean up any ongoing fetch controllers on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
-  const logAlarm = useCallback(() => {
-    if (!analysis || !symbol) return;
-    setAlarmLog((log) =>
-      [{ symbol, tf: analysis.entryTierName, score: analysis.score, pattern: analysis.pattern?.name, time: new Date().toLocaleTimeString() }, ...log].slice(0, 6)
-    );
-  }, [analysis, symbol]);
+    setTimeout(() => {
+      clearInterval(rotate);
+      setSignals(data ?? []);
+      setSymbol(targetSymbol);
+      setIsAnalyzing(false);
+    }, ANALYZE_MS);
+  };
 
   if (!profile) {
     return (
@@ -265,178 +75,51 @@ export default function Dashboard() {
     );
   }
 
-  if (showOnboard) {
-    return <SpinnerSplash slides={ONBOARD_SLIDES} index={onboardIndex} subtitle="Welcome to Gobulu" />;
-  }
-
   if (isAnalyzing) {
-    return <SpinnerSplash slides={ANALYZE_SLIDES} index={analyzeIndex} subtitle={`Analysing ${symbol || selectedSymbol} · ${analyzeCountdown}s`} />;
+    return <SpinnerSplash slides={ANALYZE_SLIDES} index={analyzeIndex} subtitle={`Analysing ${selectedSymbol}`} />;
   }
-
-  const cascade = CASCADES[profile.style];
 
   return (
     <div className="bg-mist min-h-[80vh] pb-10">
       <div className="bg-royal">
         <div className="max-w-3xl mx-auto px-5 pt-8 pb-6">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-white font-display font-bold text-lg">{cascade?.label ?? "Trading"} cascade</span>
-            <div className="flex items-center gap-3">
-              {notifPermission !== "granted" && notifPermission !== "unsupported" && (
-                <button type="button" onClick={requestNotifications} title="Get notified the moment price reaches a confirmed entry zone with 5+ confluence" className="flex items-center gap-1 text-white/90 text-xs font-semibold bg-white/15 rounded-full px-3 py-1.5 transition-colors hover:bg-white/25">
-                     <BellRing size={13} /> Notify me at entry zone
-                 </button>
-              )}
-            </div>
-          </div>
+          <span className="text-white font-display font-bold text-lg block mb-4">Daily signals</span>
 
-          <label htmlFor="symbol-select" className="text-white/50 text-[10px] font-bold uppercase tracking-wide mb-1.5 block">
-            Market
-          </label>
+          <label className="text-white/50 text-[10px] font-bold uppercase tracking-wide mb-1.5 block">Market</label>
           <select
-            id="symbol-select"
             value={selectedSymbol}
             onChange={(e) => setSelectedSymbol(e.target.value)}
-            className="w-full mb-3 rounded-xl bg-white/15 text-white text-sm font-bold px-3.5 py-2.5 outline-none border border-white/20 focus:border-white/50 transition-colors"
+            className="w-full mb-3 rounded-xl bg-white/15 text-white text-sm font-bold px-3.5 py-2.5 outline-none border border-white/20"
           >
-            {FOREX_SYMBOLS.map((s) => (
-              <option key={s} value={s} className="text-ink">{s}</option>
-            ))}
+            {FOREX_SYMBOLS.map((s) => <option key={s} value={s} className="text-ink">{s}</option>)}
           </select>
 
           <button
-            type="button"
             onClick={() => runAnalysis(selectedSymbol)}
-            className="w-full mb-4 flex items-center justify-center gap-2 rounded-xl bg-white text-royal font-bold text-sm py-3 transition-transform active:scale-[0.99]"
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-white text-royal font-bold text-sm py-3 transition-transform active:scale-[0.99]"
           >
             <Search size={16} /> Analyze {selectedSymbol}
           </button>
-
-          {symbol && analysis && (
-            <div className="flex items-end justify-between">
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-white/70 text-[11px] font-semibold uppercase tracking-wide">Live price (Trading View)</p>
-                  {liveDataOk ? <Wifi size={11} className="text-white/60" /> : <WifiOff size={11} className="text-gold" />}
-                </div>
-                <p className="text-white text-2xl font-extrabold font-nums">{fmtPrice(symbol, analysis.livePrice)}</p>
-              </div>
-              <button onClick={() => runAnalysis(symbol)} className="flex items-center gap-1.5 text-white/90 text-xs font-semibold bg-white/15 rounded-full px-3 py-2 transition-colors hover:bg-white/25">
-                <RefreshCw size={13} /> Analyze
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      {!symbol || !analysis ? (
+      {!symbol ? (
         <div className="max-w-3xl mx-auto px-5 mt-8 text-center">
-          <p className="text-sm text-ink/50">Pick a market above and tap Analyze to run the cascade.</p>
+          <p className="text-sm text-ink/50">Pick a market above and tap Analyze to see today's signals.</p>
         </div>
       ) : (
         <div className="max-w-3xl mx-auto px-5 mt-5 space-y-5">
-          {analysis.alarmActive ? (
-            <button onClick={logAlarm} className="w-full text-left rounded-xl p-4 flex items-center gap-3 bg-royal transition-transform active:scale-[0.99]">
-              <Bell size={20} className="text-white" />
-              <div className="flex-1">
-                <p className="text-white font-bold text-sm">Setup confirmed — {analysis.pattern?.name}</p>
-                <p className="text-white/80 text-xs">{analysis.entryTierName} entry · {analysis.score}/{analysis.total} Gobulu · tap to log alert</p>
-              </div>
-            </button>
+          <TradingViewChart symbol={symbol} />
+
+          {signals.length === 0 ? (
+            <div className="rounded-xl border border-line bg-white p-4 text-sm text-ink/40 text-center">
+              No signal posted for {symbol} today yet.
+            </div>
           ) : (
-            <div className="rounded-xl p-4 flex items-center gap-3 border border-line bg-white">
-              <Circle size={18} className="text-line" />
-              <p className="text-sm font-medium text-ink/50">
-                {analysis.tradePlan?.zoneMessage ?? "No confirmed entry yet, waiting on confluence and candlestick confirmation."}
-              </p>
-            </div>
-          )}
-
-          {analysis.tradePlan && (
-            <div className="rounded-xl border border-line bg-white p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-bold text-ink">
-                  Trade plan — {analysis.tradePlan.direction === "buy" ? "Buy" : "Sell"}
-                  <span className="text-ink/40 font-medium">
-                    {" · "}
-                    {analysis.tradePlan.entrySource === "supply_demand" ? "Supply/Demand zone"
-                      : analysis.tradePlan.entrySource === "psychological" ? "Psychological level"
-                      : "Support/Resistance"}
-                  </span>
-                  {!analysis.tradePlan.confirmed && <span className="text-ink/40 font-medium"> (prospective)</span>}
-                  {analysis.tradePlan.fibAligns && <span className="text-royal font-medium"> · Fib aligned</span>}
-                  {analysis.tradePlan.entryIsPsychBonus && <span className="text-bull font-medium"> · Psych bonus</span>}
-                </p>
-                {analysis.tradePlan.riskReward && (
-                  <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-royal/10 text-royal shrink-0">1:{analysis.tradePlan.riskReward} R:R</span>
-                )}
-              </div>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-ink/50">Entry</span>
-                  <span className="font-bold font-nums text-ink">{fmtPrice(symbol, analysis.tradePlan.entryPrice)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink/50">Stop loss</span>
-                  <span className="font-bold font-nums text-bear">{fmtPrice(symbol, analysis.tradePlan.stopLoss)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-ink/50">Take profit (psych level)</span>
-                  <span className="font-bold font-nums text-bull">{analysis.tradePlan.takeProfit != null ? fmtPrice(symbol, analysis.tradePlan.takeProfit) : "—"}</span>
-                </div>
-              </div>
-              <div
-                className="mt-3 rounded-lg px-3 py-2 text-xs font-semibold"
-                style={{
-                  background: analysis.tradePlan.zoneStatus === "at_zone" ? "#E6F7EF"
-                    : analysis.tradePlan.zoneStatus === "missed" ? (analysis.tradePlan.missedInfo?.stillClose ? "#FFF6DD" : "#FDECEF")
-                    : "#FFF6DD",
-                  color: analysis.tradePlan.zoneStatus === "at_zone" ? "#0E9F6E"
-                    : analysis.tradePlan.zoneStatus === "missed" ? (analysis.tradePlan.missedInfo?.stillClose ? "#D69E00" : "#E11D48")
-                    : "#D69E00",
-                }}
-              >
-                {analysis.tradePlan.zoneMessage}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wide mb-2 text-ink/40">Top-down cascade</p>
-            <div className="space-y-2.5">
-              {analysis.tiers.map((tier) => <TierCard key={tier.name} tier={tier} decimals={analysis.decimals} />)}
-            </div>
-          </div>
-
-          <ChecklistPanel checklist={analysis.checklist} score={analysis.score} strength={analysis.strength} />
-          <FibPanel fib={analysis.fib} symbol={symbol} decimals={analysis.decimals} />
-          <RiskPanel accountSize={profile.accountSize} riskPercent={profile.riskPercent} stopLossPips={stopLossPips} setStopLossPips={setStopLossPips} symbol={symbol} />
-          <AlertLog log={alarmLog} />
-
-          {history.length > 0 && (
-            <div className="rounded-xl border border-line bg-white p-4">
-              <p className="text-sm font-bold text-ink mb-3">Analysis history</p>
-              <div className="space-y-3">
-                {history.map((h) => (
-                  <div key={h.id} className="rounded-lg bg-mist p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-bold text-ink">{h.symbol}</span>
-                      <span className="text-[10px] text-ink/40">{new Date(h.created_at).toLocaleString()}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 text-[11px]">
-                      <span className="px-2 py-0.5 rounded-full bg-white text-ink/70 font-medium capitalize">{h.trading_style} · {h.entry_timeframe}</span>
-                      <span className="px-2 py-0.5 rounded-full bg-white text-ink/70 font-medium capitalize">{h.trend ?? "—"}</span>
-                      {h.pattern_name && <span className="px-2 py-0.5 rounded-full bg-white text-ink/70 font-medium">{h.pattern_name}</span>}
-                      {h.direction && <span className={`px-2 py-0.5 rounded-full font-bold ${h.direction === "buy" ? "bg-bull/10 text-bull" : "bg-bear/10 text-bear"}`}>{h.direction.toUpperCase()}</span>}
-                      <span className="px-2 py-0.5 rounded-full bg-royal/10 text-royal font-bold">{h.score}/9 · {h.strength}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            signals.map((s) => <SignalCard key={s.id} signal={s} symbol={symbol} />)
           )}
         </div>
       )}
     </div>
   );
-      }
+}
