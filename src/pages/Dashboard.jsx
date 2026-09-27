@@ -1,13 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
-import SetupPanel from "../components/dashboard/SetupPanel.jsx";
 import SignalCard from "../components/dashboard/SignalCard.jsx";
 import TradingViewChart from "../components/dashboard/TradingViewChart.jsx";
 import { supabase } from "../lib/supabaseClient.js";
 import { FOREX_SYMBOLS } from "../engine/symbols.js";
-import { GitBranch, Target, TrendingUp, Activity, Bell } from "lucide-react";
+import { GitBranch, Target, Activity } from "lucide-react";
 
+const PAGE_LOAD_MS = 7000;
 const ANALYZE_MS = 3000;
+
+const LOAD_SLIDES = [
+  { icon: GitBranch, title: "Setting up your cascade", desc: "Preparing today's markets and signals." },
+  { icon: Activity, title: "Connecting to live charts", desc: "Loading TradingView data." },
+  { icon: Target, title: "Almost ready", desc: "Getting your trading dashboard in place." },
+];
 
 const ANALYZE_SLIDES = [
   { icon: GitBranch, title: "Checking today's signals", desc: "Looking for a posted call on this pair." },
@@ -37,12 +43,24 @@ function SpinnerSplash({ slides, index, subtitle }) {
 }
 
 export default function Dashboard() {
-  const [profile, setProfile] = useState(null);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [loadIndex, setLoadIndex] = useState(0);
+
   const [selectedSymbol, setSelectedSymbol] = useState("EURUSD");
   const [symbol, setSymbol] = useState(null);
   const [signals, setSignals] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeIndex, setAnalyzeIndex] = useState(0);
+
+  // 7-second splash on first load of this page
+  useEffect(() => {
+    const rotate = setInterval(() => setLoadIndex((i) => i + 1), 1600);
+    const done = setTimeout(() => {
+      clearInterval(rotate);
+      setPageLoading(false);
+    }, PAGE_LOAD_MS);
+    return () => { clearInterval(rotate); clearTimeout(done); };
+  }, []);
 
   const runAnalysis = async (targetSymbol) => {
     setIsAnalyzing(true);
@@ -67,12 +85,8 @@ export default function Dashboard() {
     }, ANALYZE_MS);
   };
 
-  if (!profile) {
-    return (
-      <div className="bg-white min-h-[70vh] flex items-center px-5 py-14">
-        <SetupPanel onComplete={setProfile} />
-      </div>
-    );
+  if (pageLoading) {
+    return <SpinnerSplash slides={LOAD_SLIDES} index={loadIndex} subtitle="Welcome to Gobulu" />;
   }
 
   if (isAnalyzing) {

@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Account from "./pages/Account.jsx";
 import History from "./pages/History.jsx";
 import AdminSignals from "./pages/AdminSignals.jsx";
+import SecurityGate from "./components/SecurityGate.jsx";
 
 export default function App() {
   return (
@@ -49,11 +50,14 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          
           <Route
             path="/admin"
             element={
               <AdminGate>
-                <AdminSignals />
+                <SecurityGate>
+                  <AdminSignals />
+                </SecurityGate>
               </AdminGate>
             }
           />
