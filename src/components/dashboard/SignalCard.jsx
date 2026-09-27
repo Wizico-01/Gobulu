@@ -1,5 +1,5 @@
 import React from "react";
-import { fmtPrice } from "../engine/symbols.js";
+import { fmtPrice } from "../../engine/symbols.js";
 
 const STATUS_STYLES = {
   active: { bg: "#EEF0F7", fg: "#1E3A8A", label: "Active" },
