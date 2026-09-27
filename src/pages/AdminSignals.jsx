@@ -5,6 +5,7 @@ import { FOREX_SYMBOLS } from "../engine/symbols.js";
 export default function AdminSignals() {
   const [form, setForm] = useState({
     symbol: "EURUSD",
+    trading_style: "day",
     direction: "buy",
     entry_price: "",
     stop_loss: "",
@@ -18,6 +19,7 @@ export default function AdminSignals() {
     setStatus("Posting...");
     const { error } = await supabase.from("signals").insert({
       symbol: form.symbol,
+      trading_style: form.trading_style,
       direction: form.direction,
       entry_price: form.entry_price ? +form.entry_price : null,
       stop_loss: form.stop_loss ? +form.stop_loss : null,
@@ -27,7 +29,7 @@ export default function AdminSignals() {
     });
     setStatus(error ? `Error: ${error.message}` : "Signal posted ✓");
     if (!error) {
-      setForm({ symbol: form.symbol, direction: "buy", entry_price: "", stop_loss: "", take_profit: "", reasoning: "", strength: "strong" });
+      setForm({ ...form, direction: "buy", entry_price: "", stop_loss: "", take_profit: "", reasoning: "", strength: "strong" });
     }
   };
 
@@ -37,6 +39,11 @@ export default function AdminSignals() {
 
       <select value={form.symbol} onChange={(e) => setForm({ ...form, symbol: e.target.value })} className="w-full border rounded-lg p-2">
         {FOREX_SYMBOLS.map((s) => <option key={s} value={s}>{s}</option>)}
+      </select>
+
+      <select value={form.trading_style} onChange={(e) => setForm({ ...form, trading_style: e.target.value })} className="w-full border rounded-lg p-2">
+        <option value="day">Day trader</option>
+        <option value="swing">Swing trader</option>
       </select>
 
       <select value={form.direction} onChange={(e) => setForm({ ...form, direction: e.target.value })} className="w-full border rounded-lg p-2">

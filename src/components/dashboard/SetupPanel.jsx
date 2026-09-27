@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { ChevronRight, Target } from "lucide-react";
-import { CASCADES } from "../../engine/symbols.js";
+
+const TRADING_STYLES = [
+  { key: "day", label: "Day trader" },
+  { key: "swing", label: "Swing trader" },
+];
 
 export default function SetupPanel({ onComplete }) {
   const [style, setStyle] = useState("day");
@@ -16,16 +20,16 @@ export default function SetupPanel({ onComplete }) {
         </div>
         <span className="text-xl font-extrabold tracking-tight text-ink font-display">Set up your profile</span>
       </div>
-      <p className="text-sm mb-7 text-ink/50">This tunes the cascade, risk sizing, and alerts to how you actually trade.</p>
+      <p className="text-sm mb-7 text-ink/50">This tunes which signals you see and your risk sizing to how you actually trade.</p>
 
       <p className="text-xs font-bold uppercase tracking-wide mb-2 text-ink/40">Trading style</p>
-      <div className="grid grid-cols-3 gap-2 mb-6">
-        {Object.entries(CASCADES).map(([key, v]) => (
+      <div className="grid grid-cols-2 gap-2 mb-6">
+        {TRADING_STYLES.map((s) => (
           <button
-            key={key} onClick={() => setStyle(key)}
-            className={`rounded-xl border py-2.5 text-xs font-bold ${style === key ? "border-royal bg-royal text-white" : "border-line bg-white text-ink"}`}
+            key={s.key} onClick={() => setStyle(s.key)}
+            className={`rounded-xl border py-2.5 text-xs font-bold ${style === s.key ? "border-royal bg-royal text-white" : "border-line bg-white text-ink"}`}
           >
-            {v.label}
+            {s.label}
           </button>
         ))}
       </div>
