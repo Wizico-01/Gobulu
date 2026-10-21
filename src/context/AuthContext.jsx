@@ -33,11 +33,20 @@ export function AuthProvider({ children }) {
 
   const signUp = (email, password) => supabase.auth.signUp({ email, password });
   const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password });
-  const signInWithGoogle = () => supabase.auth.signInWithOAuth({ provider: "google" });
+  
+  // Explicitly send users to gobulu.trade after Google auth
+  const signInWithGoogle = () =>
+    supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: "https://gobulu.trade/auth/callback",
+      },
+    });
+
   const signOut = () => supabase.auth.signOut();
 
   return (
-        <AuthContext.Provider value={{ user, profile, isSubscribed, loading, signUp, signIn, signOut, signInWithGoogle }}>
+    <AuthContext.Provider value={{ user, profile, isSubscribed, loading, signUp, signIn, signOut, signInWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );

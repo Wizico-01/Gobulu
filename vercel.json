@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/auth/v1/:path*",
+      "destination": "https://bzyeprydubjorpfhkjii.supabase.co/auth/v1/:path*"
+    }
+  ]
+}
