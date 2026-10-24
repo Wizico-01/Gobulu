@@ -50,12 +50,6 @@ export default function Signup() {
           {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
-      <button
-        onClick={() => signInWithGoogle()}
-        className="w-full mt-4 border border-line rounded-xl py-3 text-sm font-bold text-ink flex items-center justify-center gap-2"
-      >
-        Signup with Google
-      </button>
       <p className="text-sm text-ink/50 mt-6 text-center">
         Already have an account? <Link to="/login" className="text-royal font-semibold">Log in</Link>
       </p>
