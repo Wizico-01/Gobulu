@@ -5,7 +5,7 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null); // includes subscription_status, plan, etc.
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,22 +31,24 @@ export function AuthProvider({ children }) {
 
   const isSubscribed = profile?.subscription_status === "active";
 
-  const signUp = (email, password) => supabase.auth.signUp({ email, password });
-  const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password });
-  
-  // Explicitly send users to gobulu.trade after Google auth
-  const signInWithGoogle = () =>
-    supabase.auth.signInWithOAuth({
-      provider: "google",
+  const signUp = (email, password) =>
+    supabase.auth.signUp({
+      email,
+      password,
       options: {
-        redirectTo: "https://gobulu.trade/auth/callback",
+        emailRedirectTo: "https://gobulu.trade/auth/callback",
       },
     });
+
+  const signIn = (email, password) =>
+    supabase.auth.signInWithPassword({ email, password });
 
   const signOut = () => supabase.auth.signOut();
 
   return (
-    <AuthContext.Provider value={{ user, profile, isSubscribed, loading, signUp, signIn, signOut, signInWithGoogle }}>
+    <AuthContext.Provider
+      value={{ user, profile, isSubscribed, loading, signUp, signIn, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );
