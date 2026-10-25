@@ -9,6 +9,7 @@ import HowItWorks from "./pages/HowItWorks.jsx";
 import Pricing from "./pages/Pricing.jsx";
 import Login from "./pages/Login.jsx";
 import Signup from "./pages/Signup.jsx";
+import AuthCallback from "./pages/AuthCallback.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Account from "./pages/Account.jsx";
 import History from "./pages/History.jsx";
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
           <Route
             path="/analyze"
             element={
