@@ -8,22 +8,28 @@ export default function AuthCallback() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    // Supabase automatically parses the token hash in the URL on load
+    // 1. Listen for the auth state change triggered when Supabase parses the hash token
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" || session) {
+        setStatus("success");
+        setTimeout(() => navigate("/dashboard"), 2000);
+      }
+    });
+
+    // 2. Check for existing session as fallback
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         setStatus("error");
         setErrorMessage(error.message);
       } else if (session) {
         setStatus("success");
-        // Redirect to dashboard after 2 seconds
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 2000);
-      } else {
-        // Fallback if no session was created
-        navigate("/login");
+        setTimeout(() => navigate("/dashboard"), 2000);
       }
     });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
   }, [navigate]);
 
   return (
