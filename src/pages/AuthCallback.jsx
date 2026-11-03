@@ -7,39 +7,54 @@ export default function AuthCallback() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    // Catch auth state change from verification link token
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === "SIGNED_IN" || session) {
-          setStatus("success");
-        }
-      }
-    );
+    async function handleAuthVerification() {
+      // 1. Check if Supabase sent a PKCE 'code' query parameter in the URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const code = searchParams.get("code");
 
-    // Fallback session check
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error) {
+          setStatus("error");
+          setErrorMessage(error.message);
+          return;
+        }
+        setStatus("success");
+        return;
+      }
+
+      // 2. Check current session or auth state change for token hash
+      const { data: { session }, error } = await supabase.auth.getSession();
       if (error) {
         setStatus("error");
         setErrorMessage(error.message);
       } else if (session) {
         setStatus("success");
+      } else {
+        // Listen for async auth state change when client finishes parsing hash
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            if (event === "SIGNED_IN" || session) {
+              setStatus("success");
+            }
+          }
+        );
+        return () => authListener?.subscription?.unsubscribe();
       }
-    });
+    }
 
-    return () => {
-      authListener?.subscription?.unsubscribe();
-    };
+    handleAuthVerification();
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 bg-white flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[9999] bg-white flex items-center justify-center p-6">
       <div className="max-w-md w-full text-center">
         {status === "verifying" && (
           <div>
             <div className="w-10 h-10 border-4 border-royal border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <h2 className="text-xl font-bold text-ink">Verifying your email...</h2>
             <p className="text-sm text-ink/50 mt-2">
-              Please wait a moment while we confirm your email address.
+              Please wait a moment while we confirm your account details.
             </p>
           </div>
         )}
