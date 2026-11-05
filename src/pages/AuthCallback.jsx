@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 
 export default function AuthCallback() {
@@ -20,6 +19,10 @@ export default function AuthCallback() {
           return;
         }
         setStatus("success");
+        // Optional: auto-redirect after a short delay
+        setTimeout(() => {
+          window.location.replace("/#/login");
+        }, 1500);
         return;
       }
 
@@ -30,12 +33,18 @@ export default function AuthCallback() {
         setErrorMessage(error.message);
       } else if (session) {
         setStatus("success");
+        setTimeout(() => {
+          window.location.replace("/#/login");
+        }, 1500);
       } else {
         // Listen for async auth state change when client finishes parsing hash
         const { data: authListener } = supabase.auth.onAuthStateChange(
           (event, session) => {
             if (event === "SIGNED_IN" || session) {
               setStatus("success");
+              setTimeout(() => {
+                window.location.replace("/#/login");
+              }, 1500);
             }
           }
         );
@@ -69,12 +78,12 @@ export default function AuthCallback() {
               Your email has been successfully verified, and your Gobulu account is officially active.
             </p>
             <div className="pt-4">
-              <Link
-                to="/login"
+              <a
+                href="/#/login"
                 className="inline-block bg-royal text-white font-bold text-sm px-8 py-3 rounded-xl hover:opacity-90 transition-opacity"
               >
                 Log In to Your Account
-              </Link>
+              </a>
             </div>
           </div>
         )}
@@ -83,12 +92,12 @@ export default function AuthCallback() {
           <div>
             <h2 className="text-xl font-bold text-bear mb-2">Verification Failed</h2>
             <p className="text-sm text-ink/50 mb-6">{errorMessage}</p>
-            <Link
-              to="/login"
+            <a
+              href="/#/login"
               className="inline-block bg-royal text-white font-bold text-sm px-6 py-2.5 rounded-xl"
             >
               Go to Login
-            </Link>
+            </a>
           </div>
         )}
       </div>
