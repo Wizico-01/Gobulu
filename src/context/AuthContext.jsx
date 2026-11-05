@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
       email,
       password,
       options: {
-        emailRedirectTo: "https://gobulu.trade/auth/callback",
+        emailRedirectTo: `${window.location.origin}/#/auth/callback`,
       },
     });
 
