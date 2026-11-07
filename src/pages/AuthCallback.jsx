@@ -6,53 +6,54 @@ export default function AuthCallback() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    async function handleAuthVerification() {
-      // 1. Check if Supabase sent a PKCE 'code' query parameter in the URL
-      const searchParams = new URLSearchParams(window.location.search);
-      const code = searchParams.get("code");
+    let finished = false;
 
-      if (code) {
-        const { error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error) {
-          setStatus("error");
-          setErrorMessage(error.message);
-          return;
-        }
-        setStatus("success");
-        // Optional: auto-redirect after a short delay
-        setTimeout(() => {
-          window.location.replace("/#/login");
-        }, 1500);
-        return;
+    const finish = (s, msg = "") => {
+      if (finished) return;
+      finished = true;
+      setStatus(s);
+      setErrorMessage(msg);
+      if (s === "success") {
+        setTimeout(() => window.location.replace("/#/login"), 1500);
       }
+    };
 
-      // 2. Check current session or auth state change for token hash
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) {
-        setStatus("error");
-        setErrorMessage(error.message);
-      } else if (session) {
-        setStatus("success");
-        setTimeout(() => {
-          window.location.replace("/#/login");
-        }, 1500);
-      } else {
-        // Listen for async auth state change when client finishes parsing hash
-        const { data: authListener } = supabase.auth.onAuthStateChange(
-          (event, session) => {
-            if (event === "SIGNED_IN" || session) {
-              setStatus("success");
-              setTimeout(() => {
-                window.location.replace("/#/login");
-              }, 1500);
-            }
-          }
-        );
-        return () => authListener?.subscription?.unsubscribe();
-      }
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const queryParams = new URLSearchParams(window.location.search);
+
+    // Supabase puts expired/used-link errors in the URL
+    const urlError = hashParams.get("error_description") || queryParams.get("error_description");
+    if (urlError) {
+      finish("error", `${urlError.replace(/\+/g, " ")}. If you already tapped this link once, your account may already be confirmed. Try logging in.`);
+      return;
     }
 
-    handleAuthVerification();
+    // Listen first so the sign-in event is never missed
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) finish("success");
+    });
+
+    (async () => {
+      const code = queryParams.get("code");
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        return error ? finish("error", error.message) : finish("success");
+      }
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) return finish("error", error.message);
+      if (session) finish("success");
+    })();
+
+    // Never spin forever
+    const timer = setTimeout(
+      () => finish("error", "We couldn't confirm this link. It may have expired or already been used. Try logging in, or sign up again."),
+      10000
+    );
+
+    return () => {
+      clearTimeout(timer);
+      listener?.subscription?.unsubscribe();
+    };
   }, []);
 
   return (
