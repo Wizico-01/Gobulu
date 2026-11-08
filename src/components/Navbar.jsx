@@ -55,6 +55,9 @@ export default function Navbar() {
                   </Link>
                 </>
               )}
+              <Link to="/contact" className="text-sm font-semibold text-ink/70 hover:text-ink transition-colors">
+                Support
+              </Link>
               <Link to="/account" className="text-sm font-semibold text-ink/70 hover:text-ink transition-colors">
                 Account
               </Link>
@@ -102,6 +105,9 @@ export default function Navbar() {
                     </Link>
                   </>
                 )}
+                <Link to="/contact" onClick={() => setOpen(false)} className="text-sm font-semibold text-ink">
+                  Support
+                </Link>
                 <Link to="/account" onClick={() => setOpen(false)} className="text-sm font-semibold text-ink">
                   Account
                 </Link>

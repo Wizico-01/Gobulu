@@ -10,10 +10,12 @@ export default function Footer() {
     <footer className="border-t border-line bg-mist">
       <div className="max-w-6xl mx-auto px-5 py-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <Logo size="sm" />
-        <div className="flex gap-6 text-sm font-medium text-ink/60">
-          <Link to="/how-it-works" className="hover:text-ink transition-colors">How it works</Link>
-          {!isSubscribed && <Link to="/pricing" className="hover:text-ink transition-colors">Pricing</Link>}
-          {!user && <Link to="/login" className="hover:text-ink transition-colors">Log in</Link>}
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-ink/60">
+          <Link to="/how-it-works" className="hover:text-ink">How it works</Link>
+          {!isSubscribed && <Link to="/pricing" className="hover:text-ink">Pricing</Link>}
+          <Link to="/contact" className="hover:text-ink">Contact support</Link>
+<a href="mailto:support@gobulu.trade" className="hover:text-ink">Email us</a>
+          {!user && <Link to="/login" className="hover:text-ink">Log in</Link>}
         </div>
         <p className="text-xs text-ink/40">© {new Date().getFullYear()} Gobulu. Not investment advice.</p>
       </div>

@@ -15,6 +15,9 @@ import Account from "./pages/Account.jsx";
 import History from "./pages/History.jsx";
 import AdminSignals from "./pages/AdminSignals.jsx";
 import SecurityGate from "./components/SecurityGate.jsx";
+import Contact from "./pages/Contact.jsx";
+import AdminMessages from "./pages/AdminMessages.jsx";
+
 
 export default function App() {
   return (
@@ -53,6 +56,25 @@ export default function App() {
             }
           />
           
+          <Route
+  path="/contact"
+  element={
+    <ProtectedRoute>
+      <Contact />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/admin/messages"
+  element={
+    <AdminGate>
+      <SecurityGate>
+        <AdminMessages />
+      </SecurityGate>
+    </AdminGate>
+  }
+/>
+
           <Route
             path="/admin"
             element={
