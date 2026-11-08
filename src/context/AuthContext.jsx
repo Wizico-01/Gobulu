@@ -31,11 +31,12 @@ export function AuthProvider({ children }) {
 
   const isSubscribed = profile?.subscription_status === "active";
 
-  const signUp = (email, password) =>
+  const signUp = (email, password, fullName) =>
     supabase.auth.signUp({
       email,
       password,
       options: {
+        data: { full_name: fullName },
         emailRedirectTo: `${window.location.origin}/#/auth/callback`,
       },
     });
