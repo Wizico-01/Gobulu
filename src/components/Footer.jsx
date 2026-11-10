@@ -17,7 +17,7 @@ export default function Footer() {
 <a href="mailto:support@gobulu.trade" className="hover:text-ink">Email us</a>
           {!user && <Link to="/login" className="hover:text-ink">Log in</Link>}
         </div>
-        <p className="text-xs text-ink/40">© {new Date().getFullYear()} Gobulu. Not investment advice.</p>
+        <p className="text-xs text-ink/40">© {new Date().getFullYear()} Gobulu. Not an investment advice.</p>
       </div>
     </footer>
   );

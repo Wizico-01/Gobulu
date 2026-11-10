@@ -6,8 +6,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 const FEATURES = [
   { icon: GitBranch, title: "Pure Price Action", body: "Built around market structure, order blocks, SMC, key levels and indicators." },
   { icon: Bell, title: "High-Confluence Signals", body: "Only alerts you when at least 5 confluence agree. If it’s messy, Gobulu stays silent." },
-  { icon: Bell, title: "Automated Risk Rules", body: "Gobulu helps you manage your risk and protects your capital with automated lot sizing and pre-calculated risk-to-reward ratios." },
-  { icon: Shield, title: "Risk built in", body: "Set your account size and risk appetite once; every setup comes with a ready-to-use lot size." },
+  { icon: Target, title: "Automated Risk Rules", body: "Gobulu helps you manage your risk and protects your capital with automated lot sizing and pre-calculated risk-to-reward ratios." },
+  { icon: Crosshair, title: "90% Signal Accuracy", body: "Gobulu filters out weak market setups to prioritize high quality trading opportunities." },
 ];
 
 export default function Home() {
@@ -85,7 +85,7 @@ export default function Home() {
       {/* CTA Section */}
       <section className="bg-mist border-t border-line">
         <div className="max-w-6xl mx-auto px-5 py-16 text-center">
-          <h2 className="font-display text-2xl font-bold text-ink">Stop spending hour on your screen</h2>
+          <h2 className="font-display text-2xl font-bold text-ink">Stop spending hours on your screen</h2>
           <p className="text-ink/60 mt-2 max-w-md mx-auto">Let Gobulu analyse the market for you.</p>
           <Link to={isSubscribed ? "/dashboard" : user ? "/pricing" : "/signup"} className="inline-flex items-center gap-1.5 bg-royal text-white font-bold text-sm px-6 py-3 rounded-xl mt-6 hover:bg-royal-dark transition-colors">
             {isSubscribed ? "Analyze Now" : "Start Analysing"} <ArrowRight size={16} />
