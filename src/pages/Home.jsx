@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, LayoutGrid, Bell, Shield, GitBranch, Volume2, VolumeX } from "lucide-react";
+import { ArrowRight, LayoutGrid, Bell, Shield, GitBranch, Volume2, VolumeX, Target, Crosshair } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
 
 const FEATURES = [
