@@ -1,5 +1,5 @@
 import React from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -18,11 +18,13 @@ import SecurityGate from "./components/SecurityGate.jsx";
 import Contact from "./pages/Contact.jsx";
 import AdminMessages from "./pages/AdminMessages.jsx";
 
-
 export default function App() {
+  const location = useLocation();
+  const isAuthCallback = location.pathname === "/auth/callback";
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      {!isAuthCallback && <Navbar />}
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
@@ -55,26 +57,24 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          
           <Route
-  path="/contact"
-  element={
-    <ProtectedRoute>
-      <Contact />
-    </ProtectedRoute>
-  }
-/>
-<Route
-  path="/admin/messages"
-  element={
-    <AdminGate>
-      <SecurityGate>
-        <AdminMessages />
-      </SecurityGate>
-    </AdminGate>
-  }
-/>
-
+            path="/contact"
+            element={
+              <ProtectedRoute>
+                <Contact />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/messages"
+            element={
+              <AdminGate>
+                <SecurityGate>
+                  <AdminMessages />
+                </SecurityGate>
+              </AdminGate>
+            }
+          />
           <Route
             path="/admin"
             element={
@@ -87,7 +87,7 @@ export default function App() {
           />
         </Routes>
       </main>
-      <Footer />
+      {!isAuthCallback && <Footer />}
     </div>
   );
 }
