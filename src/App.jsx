@@ -17,6 +17,8 @@ import AdminSignals from "./pages/AdminSignals.jsx";
 import SecurityGate from "./components/SecurityGate.jsx";
 import Contact from "./pages/Contact.jsx";
 import AdminMessages from "./pages/AdminMessages.jsx";
+import AdminUsers from "./pages/AdminUsers.jsx";
+
 
 export default function App() {
   const location = useLocation();
@@ -75,6 +77,16 @@ export default function App() {
               </AdminGate>
             }
           />
+          <Route
+  path="/admin/users"
+  element={
+    <AdminGate>
+      <SecurityGate>
+        <AdminUsers />
+      </SecurityGate>
+    </AdminGate>
+  }
+/>
           <Route
             path="/admin"
             element={
